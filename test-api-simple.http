@@ -1,0 +1,67 @@
+### Test simple de l'API de Restauration Interactive
+### Utilisez ce fichier avec l'extension REST Client de VS Code
+
+### Variables
+@baseUrl = http://localhost:3000
+@qrCode = TBL001LIBREVILLE123456789
+
+### 1. Vérifier l'état du serveur
+GET {{baseUrl}}/health
+
+### 2. Informations sur l'API
+GET {{baseUrl}}/
+
+### 3. Scanner un QR code (doit afficher une page HTML)
+GET {{baseUrl}}/table/{{qrCode}}
+
+### 4. Récupérer le menu (sans authentification)
+GET {{baseUrl}}/api/client/menu
+
+### 5. Créer une session client (CORRIGÉ)
+POST {{baseUrl}}/api/client/table/{{qrCode}}/session
+Content-Type: application/json
+
+{
+  "nomComplet": "Jean Dupont"
+}
+
+### 6. Créer une session avec un nom gabonais
+POST {{baseUrl}}/api/client/table/{{qrCode}}/session
+Content-Type: application/json
+
+{
+  "nomComplet": "MBOUMBA Jean-Baptiste"
+}
+
+### 7. Rechercher dans le menu
+GET {{baseUrl}}/api/client/menu?q=poulet
+
+### 8. Test avec un autre QR code
+GET {{baseUrl}}/table/TBL002PORTGENTIL123456789
+
+### 9. Test avec un QR code invalide
+GET {{baseUrl}}/table/INVALID123
+
+### 10. Test de validation - nom vide (doit échouer)
+POST {{baseUrl}}/api/client/table/{{qrCode}}/session
+Content-Type: application/json
+
+{
+  "nomComplet": ""
+}
+
+### 11. Test de validation - nom trop court (doit échouer)
+POST {{baseUrl}}/api/client/table/{{qrCode}}/session
+Content-Type: application/json
+
+{
+  "nomComplet": "A"
+}
+
+### 12. Test de validation - nom trop long (doit échouer)
+POST {{baseUrl}}/api/client/table/{{qrCode}}/session
+Content-Type: application/json
+
+{
+  "nomComplet": "Ce nom est beaucoup trop long pour être accepté par la validation qui limite à 150 caractères maximum et ce texte dépasse largement cette limite imposée par le système de validation des données"
+}

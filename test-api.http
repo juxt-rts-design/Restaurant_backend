@@ -1,0 +1,104 @@
+### Test de l'API de Restauration Interactive
+### Utilisez ce fichier avec l'extension REST Client de VS Code
+
+### Variables
+@baseUrl = http://localhost:3000
+@qrCode = TBL001ABC123DEF456789
+
+### 1. Vérifier l'état du serveur
+GET {{baseUrl}}/health
+
+### 2. Informations sur l'API
+GET {{baseUrl}}/
+
+### 3. Scanner un QR code
+GET {{baseUrl}}/table/{{qrCode}}
+
+### 4. Créer une session client
+POST {{baseUrl}}/api/client/table/{{qrCode}}/session
+Content-Type: application/json
+
+{
+  "nomComplet": "Jean Dupont"
+}
+
+### 5. Récupérer le menu
+GET {{baseUrl}}/api/client/menu
+
+### 6. Rechercher dans le menu
+GET {{baseUrl}}/api/client/menu?q=poulet
+
+### 7. Ajouter un produit au panier (remplacer {sessionId} par l'ID de session)
+POST {{baseUrl}}/api/client/session/{sessionId}/cart
+Content-Type: application/json
+
+{
+  "idProduit": 1,
+  "quantite": 2
+}
+
+### 8. Récupérer le panier
+GET {{baseUrl}}/api/client/session/{sessionId}/cart
+
+### 9. Valider la commande
+POST {{baseUrl}}/api/client/session/{sessionId}/order/validate
+
+### 10. Créer un paiement
+POST {{baseUrl}}/api/client/session/{sessionId}/payment
+Content-Type: application/json
+
+{
+  "methodePaiement": "CARTE"
+}
+
+### 11. Récupérer les commandes en attente (nécessite authentification)
+GET {{baseUrl}}/api/caisse/orders/pending
+Authorization: Bearer YOUR_JWT_TOKEN
+
+### 12. Valider un paiement par code
+POST {{baseUrl}}/api/caisse/payments/validate-code
+Content-Type: application/json
+
+{
+  "codeValidation": "ABC12345"
+}
+
+### 13. Récupérer les statistiques du jour
+GET {{baseUrl}}/api/caisse/stats/daily
+Authorization: Bearer YOUR_JWT_TOKEN
+
+### 14. Récupérer le tableau de bord (nécessite authentification)
+GET {{baseUrl}}/api/manager/dashboard
+Authorization: Bearer YOUR_JWT_TOKEN
+
+### 15. Récupérer tous les produits
+GET {{baseUrl}}/api/manager/products
+Authorization: Bearer YOUR_JWT_TOKEN
+
+### 16. Créer un nouveau produit
+POST {{baseUrl}}/api/manager/products
+Authorization: Bearer YOUR_JWT_TOKEN
+Content-Type: application/json
+
+{
+  "nomProduit": "Nouveau plat",
+  "description": "Description du nouveau plat",
+  "prixCfa": 3000,
+  "stockDisponible": 50
+}
+
+### 17. Récupérer toutes les tables
+GET {{baseUrl}}/api/manager/tables
+Authorization: Bearer YOUR_JWT_TOKEN
+
+### 18. Générer les QR codes
+GET {{baseUrl}}/api/manager/qr-codes
+Authorization: Bearer YOUR_JWT_TOKEN
+
+### 19. Récupérer les rapports de ventes
+GET {{baseUrl}}/api/manager/reports?type=ventes&dateDebut=2024-01-01&dateFin=2024-01-31
+Authorization: Bearer YOUR_JWT_TOKEN
+
+### 20. Rechercher des commandes
+GET {{baseUrl}}/api/caisse/search?q=Jean&type=commande
+Authorization: Bearer YOUR_JWT_TOKEN

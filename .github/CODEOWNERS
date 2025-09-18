@@ -1,0 +1,36 @@
+# Code Owners
+# Ce fichier définit qui est responsable de quelles parties du code
+
+# Tous les fichiers
+* @votre-username
+
+# Configuration et documentation
+/.github/ @votre-username
+/README.md @votre-username
+/LICENSE @votre-username
+/CHANGELOG.md @votre-username
+/CONTRIBUTING.md @votre-username
+
+# Configuration du serveur
+/server.js @votre-username
+/package.json @votre-username
+/.env.example @votre-username
+
+# Configuration de la base de données
+/database/ @votre-username
+
+# Configuration et sécurité
+/config/ @votre-username
+/middleware/ @votre-username
+
+# Modèles de données
+/models/ @votre-username
+
+# Contrôleurs
+/controllers/ @votre-username
+
+# Routes
+/routes/ @votre-username
+
+# Tests
+/test-*.js @votre-username

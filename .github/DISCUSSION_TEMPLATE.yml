@@ -1,0 +1,54 @@
+# Template pour les discussions GitHub
+
+name: 💬 Discussion Générale
+about: Poser une question ou partager une idée
+title: "[DISCUSSION] "
+labels: ["discussion", "help-wanted"]
+assignees: ""
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        💬 **Discussion Générale**
+        
+        Utilisez ce template pour poser des questions, partager des idées ou discuter de l'évolution du projet.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: 🤔 Votre Question ou Idée
+      description: Décrivez votre question ou idée de manière claire et détaillée
+      placeholder: "Ex: Comment optimiser les performances de l'API ?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 📋 Contexte
+      description: Ajoutez du contexte pour mieux comprendre votre question
+      placeholder: "Ex: Je travaille sur l'intégration mobile money et je rencontre des difficultés avec..."
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: 📂 Catégorie
+      description: Choisissez la catégorie qui correspond le mieux à votre discussion
+      options:
+        - "💡 Idée / Suggestion"
+        - "❓ Question technique"
+        - "🔧 Aide / Support"
+        - "📚 Documentation"
+        - "🚀 Amélioration"
+        - "🐛 Problème"
+        - "💬 Discussion générale"
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 📝 Informations Supplémentaires
+      description: Ajoutez toute autre information utile
+      placeholder: "Ex: Liens vers des ressources, code d'exemple, etc."
