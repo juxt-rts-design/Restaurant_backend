@@ -4,18 +4,14 @@ import { useAppContext } from '../contexts/AppContext';
 import { apiService } from '../services/api';
 import { 
   ArrowLeft, 
-  TrendingUp, 
   Users, 
   ShoppingCart, 
   CreditCard, 
   DollarSign,
-  Clock,
   CheckCircle,
-  AlertCircle,
   Plus,
   Edit,
   Trash2,
-  Eye,
   BarChart3,
   PieChart,
   Activity
@@ -42,7 +38,7 @@ interface ProductStats {
 
 const ManagerPage: React.FC = () => {
   const navigate = useNavigate();
-  const { loading, setLoading, setError } = useAppContext();
+  const { loading, setLoading } = useAppContext();
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'menu' | 'rapports'>('dashboard');
   const [stats, setStats] = useState<DashboardStats>({
@@ -293,44 +289,47 @@ const ManagerPage: React.FC = () => {
       {/* Navigation Tabs */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-8">
+          <nav className="flex space-x-6 sm:space-x-8 lg:space-x-12 overflow-x-auto">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-4 px-2 border-b-2 font-medium text-sm sm:text-base whitespace-nowrap ${
                 activeTab === 'dashboard'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              <div className="flex items-center space-x-2">
-                <BarChart3 className="w-4 h-4" />
-                <span>Dashboard</span>
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Dashboard</span>
+                <span className="sm:hidden">Dash</span>
               </div>
             </button>
             <button
               onClick={() => setActiveTab('menu')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-4 px-2 border-b-2 font-medium text-sm sm:text-base whitespace-nowrap ${
                 activeTab === 'menu'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              <div className="flex items-center space-x-2">
-                <ShoppingCart className="w-4 h-4" />
-                <span>Gestion Menu</span>
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Gestion Menu</span>
+                <span className="sm:hidden">Menu</span>
               </div>
             </button>
             <button
               onClick={() => setActiveTab('rapports')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-4 px-2 border-b-2 font-medium text-sm sm:text-base whitespace-nowrap ${
                 activeTab === 'rapports'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              <div className="flex items-center space-x-2">
-                <PieChart className="w-4 h-4" />
-                <span>Rapports</span>
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <PieChart className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Rapports</span>
+                <span className="sm:hidden">Rapp</span>
               </div>
             </button>
           </nav>
@@ -562,14 +561,15 @@ const ManagerPage: React.FC = () => {
         {activeTab === 'menu' && (
           <div className="space-y-6">
             {/* Header avec bouton d'ajout */}
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-gray-900">Gestion du Menu</h2>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-3 sm:space-y-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Gestion du Menu</h2>
               <button
                 onClick={() => setShowAddProduct(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                className="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 text-sm sm:text-base"
               >
                 <Plus className="w-4 h-4" />
-                <span>Ajouter un produit</span>
+                <span className="hidden sm:inline">Ajouter un produit</span>
+                <span className="sm:hidden">Ajouter</span>
               </button>
             </div>
 
@@ -650,62 +650,122 @@ const ManagerPage: React.FC = () => {
 
             {/* Liste des produits */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Produit
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Prix
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Stock
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Statut
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+              {/* Version desktop */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Produit
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Prix
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Stock
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Statut
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {products.map((product) => (
+                      <tr key={product.id_produit} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {product.nom_produit}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {product.description}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {formatCurrency(product.prix_cfa)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium">{product.stock_disponible}</span>
+                            <StockStatus stock={product.stock_disponible} isActive={product.actif} />
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            product.actif 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {product.actif ? 'Actif' : 'Inactif'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                          <button
+                            onClick={() => handleUpdateProduct(product)}
+                            disabled={isSubmitting}
+                            className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
+                            title="Modifier"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(product)}
+                            disabled={isSubmitting}
+                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Version mobile */}
+              <div className="sm:hidden">
+                <div className="space-y-4 p-4">
                   {products.map((product) => (
-                    <tr key={product.id_produit} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
+                    <div key={product.id_produit} className="bg-gray-50 rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-medium text-gray-900 truncate">
                             {product.nom_produit}
-                          </div>
-                          <div className="text-sm text-gray-500">
+                          </h3>
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">
                             {product.description}
-                          </div>
+                          </p>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatCurrency(product.prix_cfa)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium">{product.stock_disponible}</span>
-                          <StockStatus stock={product.stock_disponible} isActive={product.actif} />
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ml-2 ${
                           product.actif 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
                           {product.actif ? 'Actif' : 'Inactif'}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-500">Prix:</span>
+                          <span className="ml-1 font-medium">{formatCurrency(product.prix_cfa)}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Stock:</span>
+                          <span className="ml-1 font-medium">{product.stock_disponible}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-end space-x-2">
                         <button
                           onClick={() => handleUpdateProduct(product)}
                           disabled={isSubmitting}
-                          className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
+                          className="text-blue-600 hover:text-blue-900 disabled:opacity-50 p-2"
                           title="Modifier"
                         >
                           <Edit className="w-4 h-4" />
@@ -713,16 +773,16 @@ const ManagerPage: React.FC = () => {
                         <button
                           onClick={() => handleDeleteProduct(product)}
                           disabled={isSubmitting}
-                          className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                          className="text-red-600 hover:text-red-900 disabled:opacity-50 p-2"
                           title="Supprimer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </div>
             </div>
           </div>
         )}

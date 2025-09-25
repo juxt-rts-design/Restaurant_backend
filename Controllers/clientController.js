@@ -68,6 +68,50 @@ class ClientController {
     }
   }
 
+  // Récupérer la session active d'une table
+  static async getActiveSession(req, res) {
+    try {
+      const { qrCode } = req.params;
+      
+      // Vérifier si la table existe
+      const table = await Table.getByQrCode(qrCode);
+      if (!table) {
+        return res.status(404).json({
+          success: false,
+          message: 'Table non trouvée'
+        });
+      }
+
+      // Récupérer la session active
+      const activeSession = await Session.getActiveByTable(table.id_table);
+      if (!activeSession) {
+        return res.status(404).json({
+          success: false,
+          message: 'Aucune session active sur cette table'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Session active récupérée',
+        data: {
+          session: {
+            id: activeSession.id_session,
+            client: activeSession.nom_complet,
+            table: activeSession.nom_table,
+            dateOuverture: activeSession.date_ouverture
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Erreur lors de la récupération de la session active:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur interne du serveur'
+      });
+    }
+  }
+
   // Créer une session client
   static async createSession(req, res) {
     try {
@@ -103,7 +147,7 @@ class ClientController {
         message: 'Session créée avec succès',
         data: {
           session: {
-            id: session.id,
+            id: session.id_session,
             client: client.nomComplet,
             table: table.nom_table,
             dateOuverture: session.dateOuverture

@@ -24,7 +24,7 @@ const CartItem: React.FC<CartItemProps> = ({ item, onUpdateQuantity, onRemove })
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'XOF',
+      currency: 'Franc CFA',
       minimumFractionDigits: 0,
     }).format(price);
   };

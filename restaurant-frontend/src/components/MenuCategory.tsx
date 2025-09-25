@@ -53,19 +53,21 @@ const MenuCategory: React.FC<MenuCategoryProps> = ({ category, isActive, onClick
     <button
       onClick={onClick}
       className={`
-        category-card flex items-center space-x-3 px-4 py-3 rounded-lg border-2 transition-all duration-200
+        category-card flex items-center space-x-2 sm:space-x-3 lg:space-x-4 px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 rounded-lg border-2 transition-all duration-200 whitespace-nowrap
         ${isActive 
           ? `${colorClass} shadow-medium transform scale-105 category-active` 
           : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
         }
       `}
     >
-      <div className={`p-2 rounded-lg icon-bounce ${isActive ? 'bg-white' : 'bg-gray-100'}`}>
-        {icon}
+      <div className={`p-1.5 sm:p-2 lg:p-3 rounded-lg icon-bounce ${isActive ? 'bg-white' : 'bg-gray-100'}`}>
+        <div className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6">
+          {icon}
+        </div>
       </div>
-      <div className="text-left">
-        <div className="font-medium capitalize">{category}</div>
-        <div className="text-xs opacity-75">{count} produit{count > 1 ? 's' : ''}</div>
+      <div className="text-left min-w-0 flex-1">
+        <div className="font-medium capitalize text-sm sm:text-base lg:text-lg truncate">{category}</div>
+        <div className="text-xs sm:text-sm opacity-75 hidden sm:block">{count} produit{count > 1 ? 's' : ''}</div>
       </div>
     </button>
   );

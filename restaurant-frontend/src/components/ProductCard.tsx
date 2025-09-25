@@ -72,7 +72,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ produit, onAddToCart, isAddin
   return (
     <div className="menu-card bg-white rounded-xl shadow-soft border border-gray-200 overflow-hidden hover:shadow-medium transition-all duration-300 transform hover:-translate-y-1 animate-fadeInUp">
       {/* Image du produit */}
-      <div className="relative h-48 overflow-hidden">
+      <div className="relative h-40 sm:h-48 overflow-hidden">
         <img
           src={getProductImage(produit.nom_produit)}
           alt={produit.nom_produit}
@@ -107,45 +107,47 @@ const ProductCard: React.FC<ProductCardProps> = ({ produit, onAddToCart, isAddin
       </div>
 
       {/* Contenu */}
-      <div className="p-4">
+      <div className="p-3 sm:p-4">
         <div className="mb-3">
-          <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-1">
+          <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1 line-clamp-1">
             {produit.nom_produit}
           </h3>
           {produit.description && (
-            <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">
+            <p className="text-gray-600 text-xs sm:text-sm line-clamp-2 leading-relaxed">
               {produit.description}
             </p>
           )}
         </div>
 
         {/* Prix et temps de préparation */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-xl font-bold gradient-text">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <div className="text-lg sm:text-xl font-bold gradient-text">
             {formatPrice(produit.prix_cfa)} FCFA
           </div>
-          <div className="flex items-center text-gray-500 text-sm">
-            <Clock className="w-4 h-4 mr-1" />
-            <span>15-20 min</span>
+          <div className="flex items-center text-gray-500 text-xs sm:text-sm">
+            <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+            <span className="hidden sm:inline">15-20 min</span>
+            <span className="sm:hidden">15-20m</span>
           </div>
         </div>
         
         {/* Bouton d'ajout */}
         <div className="flex items-center justify-between">
           {!produit.actif || produit.stock_disponible === 0 ? (
-            <div className="w-full text-center py-3 px-4 bg-gray-100 text-gray-500 rounded-lg font-medium">
+            <div className="w-full text-center py-2 sm:py-3 px-3 sm:px-4 bg-gray-100 text-gray-500 rounded-lg font-medium text-sm sm:text-base">
               {!produit.actif ? 'Indisponible' : 'Rupture de stock'}
             </div>
           ) : (
             <button
               onClick={handleAddToCart}
               disabled={isAddingToCart}
-              className={`btn-primary w-full text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center space-x-2 shadow-md hover:shadow-lg transform hover:scale-105 ${
+              className={`btn-primary w-full text-white py-2 sm:py-3 px-3 sm:px-4 rounded-lg font-medium flex items-center justify-center space-x-1 sm:space-x-2 shadow-md hover:shadow-lg transform hover:scale-105 text-sm sm:text-base ${
                 isAddingToCart ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
-              <Plus className="w-4 h-4" />
-              <span>{isAddingToCart ? 'Ajout...' : 'Ajouter au panier'}</span>
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">{isAddingToCart ? 'Ajout...' : 'Ajouter au panier'}</span>
+              <span className="sm:hidden">{isAddingToCart ? '...' : 'Ajouter'}</span>
             </button>
           )}
         </div>

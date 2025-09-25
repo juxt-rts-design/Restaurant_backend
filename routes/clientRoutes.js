@@ -13,6 +13,13 @@ router.get('/table/:qrCode',
   ClientController.scanQrCode
 );
 
+// Récupérer la session active d'une table
+router.get('/table/:qrCode/session/active', 
+  qrCodeRateLimit,
+  validateQrCode,
+  ClientController.getActiveSession
+);
+
 // Créer une session client
 router.post('/table/:qrCode/session', 
   qrCodeRateLimit,

@@ -11,6 +11,7 @@ class Session {
       
       return {
         id: result.insertId,
+        id_session: result.insertId,
         idTable,
         idClient,
         statutSession: 'OUVERTE',

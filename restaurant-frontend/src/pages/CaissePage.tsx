@@ -232,29 +232,29 @@ const CaissePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white shadow-sm border-b sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
               <button
                 onClick={() => navigate('/')}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
                 title="Retour à l'accueil"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
-              <h1 className="text-xl font-semibold text-gray-900">
+              <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
                 Interface Caisse
               </h1>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
               <button
                 onClick={loadData}
                 className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                 title="Actualiser"
               >
-                <RefreshCw className="w-5 h-5" />
+                <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
               {activeTab === 'sessions' && (
                 <button
@@ -262,7 +262,7 @@ const CaissePage: React.FC = () => {
                     console.log('Sessions actuelles:', sessions);
                     console.log('Nombre de sessions:', sessions.length);
                   }}
-                  className="px-3 py-1 bg-blue-500 text-white rounded text-sm"
+                  className="px-2 sm:px-3 py-1 bg-blue-500 text-white rounded text-xs sm:text-sm hidden sm:block"
                 >
                   Debug Sessions
                 </button>
@@ -274,9 +274,9 @@ const CaissePage: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Tabs */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
+            <nav className="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto">
               {[
                 { id: 'commandes', label: 'Commandes', icon: ShoppingCart },
                 { id: 'paiements', label: 'Paiements', icon: CreditCard },
@@ -287,14 +287,15 @@ const CaissePage: React.FC = () => {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
+                    className={`flex items-center space-x-1 sm:space-x-2 py-2 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                       activeTab === tab.id
                         ? 'border-primary-500 text-primary-600'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
-                    <span>{tab.label}</span>
+                    <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span className="sm:hidden">{tab.label.substring(0, 3)}</span>
                   </button>
                 );
               })}
@@ -303,7 +304,7 @@ const CaissePage: React.FC = () => {
         </div>
 
         {/* Search */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
@@ -311,7 +312,7 @@ const CaissePage: React.FC = () => {
               placeholder="Rechercher..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent w-full max-w-md"
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent w-full max-w-sm sm:max-w-md"
             />
           </div>
         </div>
@@ -323,22 +324,22 @@ const CaissePage: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Commande
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                       Client
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
                       Table
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Statut
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
                       Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -346,27 +347,31 @@ const CaissePage: React.FC = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                           {getFilteredCommandes().map((commande: CommandeWithDetails) => (
                     <tr key={commande.id_commande} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        #{commande.id_commande}
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <div className="flex flex-col">
+                          <span>#{commande.id_commande}</span>
+                          <span className="text-xs text-gray-500 sm:hidden">{commande.nom_complet}</span>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
                         {commande.nom_complet}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
                         {commande.nom_table}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(commande.statut_commande)}`}>
                           {commande.statut_commande}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">
                         {formatDate(commande.date_commande)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium space-x-1 sm:space-x-2">
                         <button
                           onClick={() => handleViewCommandeDetails(commande.id_commande)}
                           className="text-primary-600 hover:text-primary-900"
+                          title="Voir détails"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -375,6 +380,7 @@ const CaissePage: React.FC = () => {
                             onClick={() => handleMarkAsServed(commande.id_commande)}
                             disabled={isProcessing}
                             className="text-green-600 hover:text-green-900"
+                            title="Marquer comme servi"
                           >
                             <Check className="w-4 h-4" />
                           </button>
@@ -383,6 +389,7 @@ const CaissePage: React.FC = () => {
                           onClick={() => handleCancelOrder(commande.id_commande)}
                           disabled={isProcessing}
                           className="text-red-600 hover:text-red-900"
+                          title="Annuler"
                         >
                           <XCircle className="w-4 h-4" />
                         </button>

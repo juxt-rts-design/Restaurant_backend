@@ -10,7 +10,7 @@ import {
   CreatePaymentRequest 
 } from '../types';
 
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'http://192.168.1.73:3000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -42,6 +42,23 @@ class ApiService {
       return {
         success: false,
         error: error.response?.data?.message || 'Erreur lors du scan du QR code',
+      };
+    }
+  }
+
+  // Récupérer la session active d'une table
+  async getActiveSession(qrCode: string): Promise<ApiResponse<Session>> {
+    try {
+      const response = await api.get(`/api/client/table/${qrCode}/session/active`);
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la récupération de la session active',
       };
     }
   }

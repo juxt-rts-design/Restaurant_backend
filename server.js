@@ -102,13 +102,14 @@ const startServer = async () => {
     await testConnection();
     
     // Démarrer le serveur
-    app.listen(config.port, () => {
+    app.listen(config.port, '0.0.0.0', () => {
       console.log('🚀 Serveur de Restauration Interactive démarré');
       console.log(`📍 Port: ${config.port}`);
       console.log(`🌍 Environnement: ${config.nodeEnv}`);
-      console.log(`🔗 URL: http://localhost:${config.port}`);
-      console.log('📱 QR Codes: http://localhost:' + config.port + '/table/[QR_CODE]');
-      console.log('📊 API Documentation: http://localhost:' + config.port + '/api');
+      console.log(`🔗 URL Local: http://localhost:${config.port}`);
+      console.log(`🔗 URL Réseau: http://192.168.1.73:${config.port}`);
+      console.log('📱 QR Codes: http://192.168.1.73:' + config.port + '/table/[QR_CODE]');
+      console.log('📊 API Documentation: http://192.168.1.73:' + config.port + '/api');
     });
   } catch (error) {
     console.error('❌ Erreur lors du démarrage du serveur:', error);

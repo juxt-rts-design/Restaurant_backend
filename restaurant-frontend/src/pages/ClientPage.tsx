@@ -26,12 +26,6 @@ interface Product {
   actif: boolean;
 }
 
-interface CartItem {
-  id_ligne: number;
-  produit: Product;
-  quantite: number;
-  prix_unitaire: number;
-}
 
 const ClientPage: React.FC = () => {
   const { qrCode } = useParams<{ qrCode: string }>();
@@ -251,13 +245,32 @@ const ClientPage: React.FC = () => {
         console.log('Réponse création session:', sessionResponse);
         
         if (sessionResponse.success && sessionResponse.data) {
+          console.log('Données de session reçues:', sessionResponse.data);
           const sessionData = {
             id_session: sessionResponse.data.session.id,
-            nom_complet: sessionResponse.data.session.client,
-            nom_table: sessionResponse.data.session.table,
+            nom_complet: customerName.trim(),
+            nom_table: qrCode,
             date_ouverture: sessionResponse.data.session.dateOuverture
           };
+          console.log('Session data créée:', sessionData);
           setCurrentSession(sessionData);
+        } else if (sessionResponse.error && sessionResponse.error.includes('déjà active')) {
+          // Si une session existe déjà, essayer de la récupérer
+          console.log('Session déjà active, tentative de récupération...');
+          const existingSessionResponse = await apiService.getActiveSession(qrCode);
+          if (existingSessionResponse.success && existingSessionResponse.data) {
+            const sessionData = {
+              id_session: existingSessionResponse.data.session.id,
+              nom_complet: customerName.trim(),
+              nom_table: qrCode,
+              date_ouverture: existingSessionResponse.data.session.dateOuverture
+            };
+            console.log('Session existante récupérée:', sessionData);
+            setCurrentSession(sessionData);
+          } else {
+            showNotification('error', 'Impossible de récupérer la session existante');
+            return;
+          }
         } else {
           showNotification('error', 'Erreur lors de la création de session: ' + sessionResponse.error);
           return;
@@ -269,6 +282,9 @@ const ClientPage: React.FC = () => {
         showNotification('error', 'Aucune session active');
         return;
       }
+      
+      console.log('Session actuelle pour ajout panier:', currentSession);
+      console.log('ID de session utilisé:', currentSession.id_session);
       
       // Ajouter au panier via l'API
       const cartResponse = await apiService.addToCart(currentSession.id_session, {
@@ -436,36 +452,38 @@ const ClientPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white shadow-sm border-b sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
               <button
                 onClick={() => navigate('/')}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
-              <h1 className="text-xl font-semibold text-gray-900">
-                Menu du Restaurant
-              </h1>
-              {qrCode && (
-                <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                  Table: {qrCode.substring(0, 8)}
-                </span>
-              )}
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
+                  Menu du Restaurant
+                </h1>
+                {qrCode && (
+                  <span className="text-xs sm:text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded hidden sm:inline-block">
+                    Table: {qrCode.substring(0, 8)}
+                  </span>
+                )}
+              </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              {/* Search */}
-              <div className="relative hidden md:block">
+            <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
+              {/* Search - visible sur tablette et desktop */}
+              <div className="relative hidden sm:block">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Rechercher..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-32 sm:w-48 lg:w-64"
                 />
               </div>
               
@@ -476,7 +494,7 @@ const ClientPage: React.FC = () => {
               >
                 <ShoppingCart className="w-5 h-5" />
                 {getCartItemCount() > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center">
                     {getCartItemCount()}
                   </span>
                 )}
@@ -503,16 +521,16 @@ const ClientPage: React.FC = () => {
       {/* Main content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Categories */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">Nos Catégories</h2>
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-2 sm:space-y-0">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Nos Catégories</h2>
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <Filter className="w-4 h-4" />
               <span>{menu.length} produit{menu.length > 1 ? 's' : ''}</span>
             </div>
           </div>
           
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3 overflow-x-auto pb-2">
             {getCategories().map(({ name, count }) => (
               <MenuCategory
                 key={name}
@@ -526,7 +544,7 @@ const ClientPage: React.FC = () => {
         </div>
 
         {/* Menu grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
           {menu.map((produit) => (
             <ProductCard
               key={produit.id_produit}
@@ -550,46 +568,46 @@ const ClientPage: React.FC = () => {
       {showCart && (
         <div className="fixed inset-0 z-50 overflow-hidden">
           <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setShowCart(false)} />
-          <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl">
+          <div className="absolute right-0 top-0 h-full w-full max-w-sm sm:max-w-md bg-white shadow-xl">
             <div className="flex flex-col h-full">
               {/* Cart header */}
-              <div className="flex items-center justify-between p-4 border-b">
-                <h2 className="text-lg font-semibold">Panier ({getCartItemCount()})</h2>
+              <div className="flex items-center justify-between p-3 sm:p-4 border-b">
+                <h2 className="text-base sm:text-lg font-semibold">Panier ({getCartItemCount()})</h2>
                 <button
                   onClick={() => setShowCart(false)}
                   className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
               
               {/* Cart items */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
                  {cart.map((item) => (
-                   <div key={item.product.id_produit} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                     <div className="flex-1">
-                       <h4 className="font-medium text-gray-900">{item.product.nom_produit}</h4>
-                       <p className="text-sm text-gray-600">{formatPrice(item.product.prix_cfa)} FCFA</p>
+                   <div key={item.product.id_produit} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg">
+                     <div className="flex-1 min-w-0">
+                       <h4 className="font-medium text-gray-900 text-sm sm:text-base truncate">{item.product.nom_produit}</h4>
+                       <p className="text-xs sm:text-sm text-gray-600">{formatPrice(item.product.prix_cfa)} FCFA</p>
                      </div>
-                     <div className="flex items-center space-x-2">
+                     <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
                        <button
                          onClick={() => handleUpdateQuantity(item.product.id_produit, item.quantity - 1)}
                          className="p-1 rounded hover:bg-gray-200"
                        >
-                         <Minus className="w-4 h-4" />
+                         <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
                        </button>
-                       <span className="w-8 text-center">{item.quantity}</span>
+                       <span className="w-6 sm:w-8 text-center text-sm sm:text-base">{item.quantity}</span>
                        <button
                          onClick={() => handleUpdateQuantity(item.product.id_produit, item.quantity + 1)}
                          className="p-1 rounded hover:bg-gray-200"
                        >
-                         <Plus className="w-4 h-4" />
+                         <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                        </button>
                        <button
                          onClick={() => handleRemoveFromCart(item.product.id_produit)}
-                         className="p-1 rounded hover:bg-red-100 text-red-600 ml-2"
+                         className="p-1 rounded hover:bg-red-100 text-red-600 ml-1 sm:ml-2"
                        >
-                         <X className="w-4 h-4" />
+                         <X className="w-3 h-3 sm:w-4 sm:h-4" />
                        </button>
                      </div>
                    </div>
@@ -605,15 +623,15 @@ const ClientPage: React.FC = () => {
               
               {/* Cart footer */}
               {cart.length > 0 && (
-                <div className="border-t p-4 space-y-4">
-                  <div className="flex justify-between items-center text-lg font-semibold">
+                <div className="border-t p-3 sm:p-4 space-y-3 sm:space-y-4">
+                  <div className="flex justify-between items-center text-base sm:text-lg font-semibold">
                     <span>Total:</span>
                     <span className="text-blue-600">{formatPrice(getTotalPrice())} FCFA</span>
                   </div>
                   
                   <button
                     onClick={handleValidateOrder}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 sm:py-3 px-3 sm:px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-1 sm:space-x-2 text-sm sm:text-base"
                   >
                     <CheckCircle className="w-4 h-4" />
                     <span>Valider la commande</span>
@@ -630,10 +648,10 @@ const ClientPage: React.FC = () => {
         <div className="fixed inset-0 z-50 overflow-hidden">
           <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setShowPayment(false)} />
           <div className="absolute inset-0 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-              <h2 className="text-xl font-semibold mb-4">Choisir le mode de paiement</h2>
+            <div className="bg-white rounded-lg shadow-xl max-w-sm sm:max-w-md w-full p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Choisir le mode de paiement</h2>
               
-              <div className="space-y-3 mb-6">
+              <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
                 {[
                   { id: 'ESPECES', label: 'Espèces', icon: '💰' },
                   { id: 'MOBILE_MONEY', label: 'Mobile Money', icon: '📱' },
