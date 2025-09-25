@@ -435,7 +435,7 @@ class ApiService {
   // Obtenir les commandes pour la cuisine
   async getCommandesCuisine() {
     try {
-      const response = await api.get('/cuisine/commandes');
+      const response = await api.get('/api/cuisine/commandes');
       return response.data;
     } catch (error: any) {
       console.error('Erreur lors de la récupération des commandes cuisine:', error);
@@ -449,7 +449,7 @@ class ApiService {
   // Mettre à jour le statut d'un produit
   async updateProduitStatut(idLigne: number, statut: 'EN_ATTENTE' | 'EN_PREPARATION' | 'PRET') {
     try {
-      const response = await api.put(`/cuisine/produits/${idLigne}/statut`, { statut }, {
+      const response = await api.put(`/api/cuisine/produits/${idLigne}/statut`, { statut }, {
         headers: { 'Content-Type': 'application/json' }
       });
       return response.data;

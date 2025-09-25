@@ -180,7 +180,7 @@ router.get('/:qrCode',
                 
                 if (data.success) {
                   // Rediriger vers l'interface de commande
-                  window.location.href = '/menu?session=' + data.data.session.id;
+                  window.location.href = '/client/' + qrCode;
                 } else {
                   showError(data.message);
                 }
