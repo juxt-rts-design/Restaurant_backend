@@ -1,10 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const ClientController = require('../controllers/clientController');
-const { validateQrCode, validateClient, validateCommande, validatePaiement, validateSearch } = require('../middleware/validation');
+const { validateQrCode, validateClient, validateCommande, validateAddToCart, validatePaiement, validateSearch } = require('../middleware/validation');
 const { qrCodeRateLimit, paymentRateLimit } = require('../middleware/security');
 
 // Routes pour les clients (accès via QR code)
+
+// Scanner un QR code et récupérer les informations de la table
+router.get('/table/:qrCode', 
+  qrCodeRateLimit,
+  validateQrCode,
+  ClientController.scanQrCode
+);
 
 // Créer une session client
 router.post('/table/:qrCode/session', 
@@ -28,7 +35,7 @@ router.use('/session/:idSession', (req, res, next) => {
 
 // Ajouter un produit au panier
 router.post('/session/:idSession/cart', 
-  validateCommande,
+  validateAddToCart,
   ClientController.addToCart
 );
 

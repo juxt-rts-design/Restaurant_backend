@@ -16,7 +16,7 @@ const config = {
   mobileMoneyEnabled: process.env.MOBILE_MONEY_ENABLED === 'true',
   
   // Configuration CORS
-  corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:3001'],
+  corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173'],
   
   // Configuration des limites de taux
   rateLimit: {

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API</title>
+</head>
+<body>
+    <h1>Test API Menu</h1>
+    <button onclick="testMenu()">Tester le menu</button>
+    <div id="result"></div>
+
+    <script>
+        async function testMenu() {
+            try {
+                const response = await fetch('http://localhost:3000/api/client/menu');
+                const data = await response.json();
+                console.log('Réponse API:', data);
+                document.getElementById('result').innerHTML = 
+                    '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                console.error('Erreur:', error);
+                document.getElementById('result').innerHTML = 
+                    '<p style="color: red;">Erreur: ' + error.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>

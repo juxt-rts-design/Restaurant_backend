@@ -3,6 +3,7 @@ const Paiement = require('../models/Paiement');
 const Session = require('../models/Session');
 const Client = require('../models/Client');
 const Table = require('../models/Table');
+const SessionManager = require('../models/SessionManager');
 
 class CaisseController {
   // Récupérer toutes les commandes en attente
@@ -189,9 +190,23 @@ class CaisseController {
       // Valider le paiement
       await Paiement.validate(idPaiement);
 
+      // Récupérer la session du paiement pour vérifier la fermeture automatique
+      const commande = await Commande.getById(paiement.id_commande);
+      const sessionStatus = await SessionManager.getSessionStatus(commande.id_session);
+      let sessionClosed = false;
+      
+      if (sessionStatus.canClose.canClose) {
+        const closeResult = await SessionManager.autoCloseSession(commande.id_session);
+        sessionClosed = closeResult.closed;
+      }
+
       res.json({
         success: true,
-        message: 'Paiement validé avec succès'
+        message: 'Paiement validé avec succès',
+        data: {
+          sessionClosed: sessionClosed,
+          sessionStatus: sessionStatus
+        }
       });
     } catch (error) {
       console.error('Erreur lors de la validation du paiement:', error);
@@ -360,6 +375,44 @@ class CaisseController {
       });
     } catch (error) {
       console.error('Erreur lors de la recherche:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur interne du serveur'
+      });
+    }
+  }
+
+  // Fermer une session
+  static async closeSession(req, res) {
+    try {
+      const { idSession } = req.params;
+      
+      // Vérifier que la session existe
+      const session = await Session.getById(idSession);
+      if (!session) {
+        return res.status(404).json({
+          success: false,
+          message: 'Session non trouvée'
+        });
+      }
+
+      // Vérifier que la session est ouverte
+      if (session.statut_session !== 'OUVERTE') {
+        return res.status(400).json({
+          success: false,
+          message: 'La session est déjà fermée'
+        });
+      }
+
+      // Fermer la session
+      await Session.close(idSession);
+
+      res.json({
+        success: true,
+        message: 'Session fermée avec succès'
+      });
+    } catch (error) {
+      console.error('Erreur lors de la fermeture de la session:', error);
       res.status(500).json({
         success: false,
         message: 'Erreur interne du serveur'

@@ -65,14 +65,22 @@ const validateCommande = [
   handleValidationErrors
 ];
 
+// Validations pour l'ajout au panier
+const validateAddToCart = [
+  body('idProduit')
+    .isInt({ min: 1 })
+    .withMessage('ID produit invalide'),
+  body('quantite')
+    .isInt({ min: 1 })
+    .withMessage('La quantité doit être un nombre positif'),
+  handleValidationErrors
+];
+
 // Validations pour les paiements
 const validatePaiement = [
   body('methodePaiement')
     .isIn(['ESPECES', 'MOBILE_MONEY', 'CARTE', 'A_LA_CAISSE'])
     .withMessage('Méthode de paiement invalide'),
-  body('montantTotal')
-    .isInt({ min: 1 })
-    .withMessage('Le montant total doit être un nombre positif'),
   handleValidationErrors
 ];
 
@@ -81,6 +89,38 @@ const validateId = [
   param('id')
     .isInt({ min: 1 })
     .withMessage('ID invalide'),
+  handleValidationErrors
+];
+
+// Validations pour les paramètres d'ID de produit
+const validateIdProduit = [
+  param('idProduit')
+    .isInt({ min: 1 })
+    .withMessage('ID produit invalide'),
+  handleValidationErrors
+];
+
+// Validations pour les paramètres d'ID de commande
+const validateIdCommande = [
+  param('idCommande')
+    .isInt({ min: 1 })
+    .withMessage('ID commande invalide'),
+  handleValidationErrors
+];
+
+// Validations pour les paramètres d'ID de paiement
+const validateIdPaiement = [
+  param('idPaiement')
+    .isInt({ min: 1 })
+    .withMessage('ID paiement invalide'),
+  handleValidationErrors
+];
+
+// Validations pour les paramètres d'ID de session
+const validateIdSession = [
+  param('idSession')
+    .isInt({ min: 1 })
+    .withMessage('ID session invalide'),
   handleValidationErrors
 ];
 
@@ -124,8 +164,13 @@ module.exports = {
   validateTable,
   validateProduit,
   validateCommande,
+  validateAddToCart,
   validatePaiement,
   validateId,
+  validateIdProduit,
+  validateIdCommande,
+  validateIdPaiement,
+  validateIdSession,
   validateSearch,
   validateQrCode,
   validateCodeValidation

@@ -14,6 +14,9 @@ const {
 const clientRoutes = require('./routes/clientRoutes');
 const caisseRoutes = require('./routes/caisseRoutes');
 const managerRoutes = require('./routes/managerRoutes');
+const cuisineRoutes = require('./routes/cuisineRoutes');
+const panierRoutes = require('./routes/panierRoutes');
+const sessionRoutes = require('./routes/sessionRoutes');
 const qrRoutes = require('./routes/qrRoutes');
 
 // Créer l'application Express
@@ -67,6 +70,9 @@ app.get('/health', (req, res) => {
 app.use('/api/client', clientRoutes);
 app.use('/api/caisse', caisseRoutes);
 app.use('/api/manager', managerRoutes);
+app.use('/api/cuisine', cuisineRoutes);
+app.use('/api/panier', panierRoutes);
+app.use('/api/session', sessionRoutes);
 app.use('/table', qrRoutes);
 
 // Middleware de gestion des erreurs 404

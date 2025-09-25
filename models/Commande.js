@@ -10,10 +10,10 @@ class Commande {
       );
       
       return {
-        id: result.insertId,
-        idSession,
-        statutCommande: 'EN_ATTENTE',
-        dateCommande: new Date()
+        id_commande: result.insertId,
+        id_session: idSession,
+        statut_commande: 'EN_ATTENTE',
+        date_commande: new Date()
       };
     } catch (error) {
       throw new Error(`Erreur lors de la création de la commande: ${error.message}`);

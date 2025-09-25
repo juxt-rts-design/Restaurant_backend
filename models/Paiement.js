@@ -45,6 +45,25 @@ class Paiement {
     }
   }
 
+  // Récupérer les paiements d'une session
+  static async getBySession(idSession) {
+    try {
+      const [rows] = await pool.execute(
+        'SELECT p.*, c.id_session, s.id_table, s.id_client, cl.nom_complet, t.nom_table ' +
+        'FROM paiements p ' +
+        'JOIN commandes c ON p.id_commande = c.id_commande ' +
+        'JOIN sessions s ON c.id_session = s.id_session ' +
+        'JOIN clients cl ON s.id_client = cl.id_client ' +
+        'JOIN tables t ON s.id_table = t.id_table ' +
+        'WHERE s.id_session = ?',
+        [idSession]
+      );
+      return rows;
+    } catch (error) {
+      throw new Error(`Erreur lors de la récupération des paiements de la session: ${error.message}`);
+    }
+  }
+
   // Récupérer un paiement par code de validation
   static async getByCodeValidation(codeValidation) {
     try {

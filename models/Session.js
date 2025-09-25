@@ -110,6 +110,24 @@ class Session {
       throw new Error(`Erreur lors de la vérification de la session active: ${error.message}`);
     }
   }
+
+  // Fermer une session
+  static async close(idSession) {
+    try {
+      const [result] = await pool.execute(
+        'UPDATE sessions SET statut_session = "FERMÉE", date_fermeture = NOW() WHERE id_session = ?',
+        [idSession]
+      );
+      
+      if (result.affectedRows === 0) {
+        throw new Error('Session non trouvée ou déjà fermée');
+      }
+      
+      return true;
+    } catch (error) {
+      throw new Error(`Erreur lors de la fermeture de la session: ${error.message}`);
+    }
+  }
 }
 
 module.exports = Session;

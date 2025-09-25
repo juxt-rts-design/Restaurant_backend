@@ -5,6 +5,7 @@ const Produit = require('../models/Produit');
 const Commande = require('../models/Commande');
 const CommandeProduit = require('../models/CommandeProduit');
 const Paiement = require('../models/Paiement');
+const SessionManager = require('../models/SessionManager');
 
 class ClientController {
   // Scanner un QR code et accéder au menu
@@ -148,9 +149,13 @@ class ClientController {
     try {
       const { idSession } = req.params;
       const { idProduit, quantite } = req.body;
+      
+      console.log('Ajout au panier - Session:', idSession, 'Produit:', idProduit, 'Quantité:', quantite);
 
       // Vérifier que la session existe
+      console.log('Vérification de la session:', idSession);
       const session = await Session.getById(idSession);
+      console.log('Session trouvée:', session);
       if (!session) {
         return res.status(404).json({
           success: false,
@@ -181,10 +186,15 @@ class ClientController {
       let commande = commandes.find(c => c.statut_commande === 'EN_ATTENTE');
 
       if (!commande) {
+        console.log('Création d\'une nouvelle commande pour la session:', idSession);
         commande = await Commande.create(idSession);
+        console.log('Commande créée:', commande);
+      } else {
+        console.log('Commande existante trouvée:', commande);
       }
 
       // Vérifier si le produit est déjà dans la commande
+      console.log('Vérification du produit dans la commande:', commande.id_commande, idProduit);
       const existingItem = await CommandeProduit.exists(commande.id_commande, idProduit);
       
       if (existingItem) {
@@ -394,6 +404,15 @@ class ClientController {
       // Créer le paiement
       const paiement = await Paiement.create(commande.id_commande, methodePaiement, total);
 
+      // Vérifier si la session peut être fermée automatiquement
+      const sessionStatus = await SessionManager.getSessionStatus(idSession);
+      let sessionClosed = false;
+      
+      if (sessionStatus.canClose.canClose) {
+        const closeResult = await SessionManager.autoCloseSession(idSession);
+        sessionClosed = closeResult.closed;
+      }
+
       res.status(201).json({
         success: true,
         message: 'Paiement créé avec succès',
@@ -404,7 +423,9 @@ class ClientController {
             montantTotal: paiement.montantTotal,
             codeValidation: paiement.codeValidation,
             statutPaiement: paiement.statutPaiement
-          }
+          },
+          sessionClosed: sessionClosed,
+          sessionStatus: sessionStatus
         }
       });
     } catch (error) {
