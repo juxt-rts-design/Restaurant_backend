@@ -99,30 +99,48 @@ const CuisinierPage: React.FC = () => {
     }
   };
 
-  // Filtrer les commandes
+  // Filtrer les commandes et leurs produits
   const getFilteredCommandes = () => {
     if (filter === 'TOUTES') return commandes;
-    return commandes.filter(commande => {
-      if (filter === 'EN_ATTENTE') {
-        return commande.produits.some(p => p.statut_preparation === 'EN_ATTENTE');
-      }
-      if (filter === 'EN_PREPARATION') {
-        return commande.produits.some(p => p.statut_preparation === 'EN_PREPARATION');
-      }
-      if (filter === 'PRETES') {
-        return commande.produits.some(p => p.statut_preparation === 'PRET');
-      }
-      return true;
-    });
+    
+    return commandes.map(commande => {
+      // Filtrer les produits selon le statut sélectionné
+      const produitsFiltres = commande.produits.filter(produit => {
+        if (filter === 'EN_ATTENTE') {
+          return produit.statut_preparation === 'EN_ATTENTE';
+        }
+        if (filter === 'EN_PREPARATION') {
+          return produit.statut_preparation === 'EN_PREPARATION';
+        }
+        if (filter === 'PRETES') {
+          return produit.statut_preparation === 'PRET';
+        }
+        return true;
+      });
+      
+      // Retourner la commande avec seulement les produits filtrés
+      return {
+        ...commande,
+        produits: produitsFiltres
+      };
+    }).filter(commande => commande.produits.length > 0); // Ne garder que les commandes qui ont des produits après filtrage
   };
 
-  // Obtenir le statut d'une commande
+  // Obtenir le statut d'une commande (basé sur les produits filtrés)
   const getCommandeStatus = (commande: CommandeWithDetails) => {
-    const produits = commande.produits;
+    const produits = commande.produits; // Déjà filtrés par getFilteredCommandes()
     const enAttente = produits.filter(p => p.statut_preparation === 'EN_ATTENTE').length;
     const enPreparation = produits.filter(p => p.statut_preparation === 'EN_PREPARATION').length;
     const pretes = produits.filter(p => p.statut_preparation === 'PRET').length;
     
+    // Si on a un filtre actif, le statut correspond au filtre
+    if (filter !== 'TOUTES') {
+      if (filter === 'EN_ATTENTE') return { status: 'EN_ATTENTE', count: enAttente, color: 'bg-red-100 text-red-800' };
+      if (filter === 'EN_PREPARATION') return { status: 'EN_PREPARATION', count: enPreparation, color: 'bg-yellow-100 text-yellow-800' };
+      if (filter === 'PRETES') return { status: 'PRETES', count: pretes, color: 'bg-green-100 text-green-800' };
+    }
+    
+    // Logique normale pour "TOUTES"
     if (enAttente > 0) return { status: 'EN_ATTENTE', count: enAttente, color: 'bg-red-100 text-red-800' };
     if (enPreparation > 0) return { status: 'EN_PREPARATION', count: enPreparation, color: 'bg-yellow-100 text-yellow-800' };
     if (pretes > 0) return { status: 'PRETES', count: pretes, color: 'bg-green-100 text-green-800' };

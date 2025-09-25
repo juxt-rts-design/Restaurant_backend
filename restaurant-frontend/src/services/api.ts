@@ -157,9 +157,11 @@ class ApiService {
   }
 
   // Valider une commande
-  async validateOrder(sessionId: number): Promise<ApiResponse<void>> {
+  async validateOrder(sessionId: number, panierItems?: any[]): Promise<ApiResponse<void>> {
     try {
-      await api.post(`/api/client/session/${sessionId}/order/validate`, {}, {
+      await api.post(`/api/client/session/${sessionId}/order/validate`, {
+        panierItems: panierItems
+      }, {
         headers: {
           'Content-Type': 'application/json'
         }

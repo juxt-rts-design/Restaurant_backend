@@ -318,6 +318,7 @@ class ClientController {
   static async validateOrder(req, res) {
     try {
       const { idSession } = req.params;
+      const { panierItems } = req.body; // Recevoir le panier du frontend
 
       // Vérifier que la session existe
       const session = await Session.getById(idSession);
@@ -328,15 +329,26 @@ class ClientController {
         });
       }
 
-      // Récupérer la commande en attente
-      const commandes = await Commande.getBySession(idSession);
-      const commande = commandes.find(c => c.statut_commande === 'EN_ATTENTE');
+      // Récupérer ou créer la commande en attente
+      let commandes = await Commande.getBySession(idSession);
+      let commande = commandes.find(c => c.statut_commande === 'EN_ATTENTE');
 
       if (!commande) {
-        return res.status(400).json({
-          success: false,
-          message: 'Aucune commande en attente'
-        });
+        commande = await Commande.create(idSession);
+      }
+
+      // Si on a reçu le panier du frontend, synchroniser avec la base de données
+      if (panierItems && Array.isArray(panierItems)) {
+        // Vider la commande existante
+        await CommandeProduit.clearCommande(commande.id_commande);
+        
+        // Ajouter tous les items du panier
+        for (const item of panierItems) {
+          const produit = await Produit.getById(item.id_produit);
+          if (produit) {
+            await CommandeProduit.add(commande.id_commande, item.id_produit, item.quantite, produit.prix_cfa);
+          }
+        }
       }
 
       // Vérifier que le panier n'est pas vide

@@ -21,7 +21,7 @@ const config = {
   // Configuration des limites de taux
   rateLimit: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100 // limite de 100 requêtes par IP par fenêtre
+    max: 1000 // limite de 1000 requêtes par IP par fenêtre (augmenté pour le développement)
   }
 };
 

@@ -59,6 +59,7 @@ const ClientPage: React.FC = () => {
   const [notification, setNotification] = useState<{type: 'success' | 'error' | 'info', message: string} | null>(null);
   const [showNameModal, setShowNameModal] = useState(false);
   const [tempCustomerName, setTempCustomerName] = useState('');
+  const [addingToCart, setAddingToCart] = useState<Set<number>>(new Set());
 
   // Fonction pour afficher les notifications
   const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
@@ -226,6 +227,12 @@ const ClientPage: React.FC = () => {
   const handleAddToCart = async (produit: Product, quantite: number = 1) => {
     console.log('Ajout au panier:', produit.nom_produit, 'Quantité:', quantite);
     
+    // Protection contre les clics multiples
+    if (addingToCart.has(produit.id_produit)) {
+      console.log('Ajout en cours pour ce produit, ignoré');
+      return;
+    }
+    
     // Vérifier que le nom est défini
     if (!customerName.trim()) {
       showNotification('error', 'Veuillez d\'abord saisir votre nom');
@@ -234,6 +241,9 @@ const ClientPage: React.FC = () => {
     }
     
     try {
+      // Marquer le produit comme en cours d'ajout
+      setAddingToCart(prev => new Set(prev).add(produit.id_produit));
+      
       // Créer une session seulement si on n'en a pas déjà une
       if (qrCode && !currentSession) {
         console.log('Création de session pour:', customerName, 'QR Code:', qrCode);
@@ -277,6 +287,13 @@ const ClientPage: React.FC = () => {
     } catch (error: any) {
       console.error('Erreur lors de l\'ajout au panier:', error);
       showNotification('error', 'Erreur lors de l\'ajout au panier: ' + (error.message || 'Erreur inconnue'));
+    } finally {
+      // Retirer le produit de la liste des ajouts en cours
+      setAddingToCart(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(produit.id_produit);
+        return newSet;
+      });
     }
   };
 
@@ -285,7 +302,13 @@ const ClientPage: React.FC = () => {
     
     setIsProcessing(true);
     try {
-      const response = await apiService.validateOrder(currentSession.id_session);
+      // Préparer les items du panier pour l'envoi
+      const panierItems = cart.map(item => ({
+        id_produit: item.product.id_produit,
+        quantite: item.quantity
+      }));
+      
+      const response = await apiService.validateOrder(currentSession.id_session, panierItems);
       if (response.success) {
         setShowPayment(true);
         showNotification('success', 'Commande validée et envoyée à la cuisine !');
@@ -509,6 +532,7 @@ const ClientPage: React.FC = () => {
               key={produit.id_produit}
               produit={produit}
               onAddToCart={handleAddToCart}
+              isAddingToCart={addingToCart.has(produit.id_produit)}
             />
           ))}
         </div>

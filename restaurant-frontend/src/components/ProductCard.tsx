@@ -14,9 +14,10 @@ interface Product {
 interface ProductCardProps {
   produit: Product;
   onAddToCart: (produit: Product, quantite: number) => void;
+  isAddingToCart?: boolean;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ produit, onAddToCart }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ produit, onAddToCart, isAddingToCart = false }) => {
   const handleAddToCart = () => {
     onAddToCart(produit, 1);
   };
@@ -138,10 +139,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ produit, onAddToCart }) => {
           ) : (
             <button
               onClick={handleAddToCart}
-              className="btn-primary w-full text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center space-x-2 shadow-md hover:shadow-lg transform hover:scale-105"
+              disabled={isAddingToCart}
+              className={`btn-primary w-full text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center space-x-2 shadow-md hover:shadow-lg transform hover:scale-105 ${
+                isAddingToCart ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               <Plus className="w-4 h-4" />
-              <span>Ajouter au panier</span>
+              <span>{isAddingToCart ? 'Ajout...' : 'Ajouter au panier'}</span>
             </button>
           )}
         </div>

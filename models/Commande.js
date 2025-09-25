@@ -51,7 +51,7 @@ class Commande {
     }
   }
 
-  // Récupérer toutes les commandes en attente
+  // Récupérer toutes les commandes en attente (EN_ATTENTE et ENVOYÉ)
   static async getPending() {
     try {
       const [rows] = await pool.execute(
@@ -60,7 +60,7 @@ class Commande {
         'JOIN sessions s ON c.id_session = s.id_session ' +
         'JOIN clients cl ON s.id_client = cl.id_client ' +
         'JOIN tables t ON s.id_table = t.id_table ' +
-        'WHERE c.statut_commande = "EN_ATTENTE" ORDER BY c.date_commande ASC'
+        'WHERE c.statut_commande IN ("EN_ATTENTE", "ENVOYÉ") ORDER BY c.date_commande ASC'
       );
       return rows;
     } catch (error) {
@@ -99,14 +99,38 @@ class Commande {
         [idCommande]
       );
 
+      // Consolider les produits par nom (pour l'affichage)
+      const produitsConsolides = {};
+      produits.forEach(produit => {
+        const key = produit.nom_produit;
+        if (produitsConsolides[key]) {
+          produitsConsolides[key].quantite += produit.quantite;
+          produitsConsolides[key].prix_unitaire = produit.prix_unitaire; // Garder le même prix
+        } else {
+          produitsConsolides[key] = {
+            id_ligne: produit.id_ligne,
+            id_commande: produit.id_commande,
+            id_produit: produit.id_produit,
+            quantite: produit.quantite,
+            prix_unitaire: produit.prix_unitaire,
+            statut_preparation: produit.statut_preparation,
+            nom_produit: produit.nom_produit,
+            description: produit.description
+          };
+        }
+      });
+
+      // Convertir en tableau
+      const produitsFinaux = Object.values(produitsConsolides);
+
       // Calculer le total
-      const total = produits.reduce((sum, produit) => {
+      const total = produitsFinaux.reduce((sum, produit) => {
         return sum + (produit.prix_unitaire * produit.quantite);
       }, 0);
 
       return {
         ...commande,
-        produits,
+        produits: produitsFinaux,
         total
       };
     } catch (error) {

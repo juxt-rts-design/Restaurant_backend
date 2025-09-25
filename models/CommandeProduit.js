@@ -114,6 +114,19 @@ class CommandeProduit {
       throw new Error(`Erreur lors de la récupération du panier: ${error.message}`);
     }
   }
+
+  // Vider une commande (supprimer tous les produits)
+  static async clearCommande(idCommande) {
+    try {
+      await pool.execute(
+        'DELETE FROM commande_produits WHERE id_commande = ?',
+        [idCommande]
+      );
+      return true;
+    } catch (error) {
+      throw new Error(`Erreur lors du vidage de la commande: ${error.message}`);
+    }
+  }
 }
 
 module.exports = CommandeProduit;
