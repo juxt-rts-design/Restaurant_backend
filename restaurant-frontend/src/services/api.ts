@@ -3,6 +3,7 @@ import {
   ApiResponse, 
   Produit, 
   Session, 
+  SessionResponse,
   PanierItem, 
   CreateSessionRequest, 
   AddToCartRequest, 
@@ -10,7 +11,7 @@ import {
   CreatePaymentRequest 
 } from '../types';
 
-const API_BASE_URL = 'http://192.168.1.73:3000';
+const API_BASE_URL = 'http://192.168.1.66:3000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -47,7 +48,7 @@ class ApiService {
   }
 
   // Récupérer la session active d'une table
-  async getActiveSession(qrCode: string): Promise<ApiResponse<Session>> {
+  async getActiveSession(qrCode: string): Promise<ApiResponse<SessionResponse>> {
     try {
       const response = await api.get(`/api/client/table/${qrCode}/session/active`);
       return {
@@ -64,7 +65,7 @@ class ApiService {
   }
 
   // Créer une session pour une table
-  async createSession(qrCode: string, request: CreateSessionRequest): Promise<ApiResponse<Session>> {
+  async createSession(qrCode: string, request: CreateSessionRequest): Promise<ApiResponse<SessionResponse>> {
     try {
       const response = await api.post(`/api/client/table/${qrCode}/session`, {
         nomComplet: request.nomComplet,
@@ -281,7 +282,11 @@ class ApiService {
 
   async markOrderAsServed(orderId: number): Promise<ApiResponse<void>> {
     try {
-      const response = await api.put(`/api/caisse/orders/${orderId}/serve`);
+      const response = await api.put(`/api/caisse/orders/${orderId}/serve`, {}, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       return {
         success: response.data.success,
         error: response.data.error
@@ -296,7 +301,11 @@ class ApiService {
 
   async cancelOrder(orderId: number): Promise<ApiResponse<void>> {
     try {
-      const response = await api.put(`/api/caisse/orders/${orderId}/cancel`);
+      const response = await api.put(`/api/caisse/orders/${orderId}/cancel`, {}, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       return {
         success: response.data.success,
         error: response.data.error
@@ -311,7 +320,11 @@ class ApiService {
 
   async validatePayment(paymentId: number): Promise<ApiResponse<void>> {
     try {
-      const response = await api.put(`/api/caisse/payments/${paymentId}/validate`);
+      const response = await api.put(`/api/caisse/payments/${paymentId}/validate`, {}, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       return {
         success: response.data.success,
         error: response.data.error
@@ -335,6 +348,23 @@ class ApiService {
       return {
         success: false,
         error: error.response?.data?.message || 'Erreur lors de la validation',
+      };
+    }
+  }
+
+  // Récupérer les commandes d'une session
+  async getSessionOrders(sessionId: number): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await api.get(`/api/client/session/${sessionId}/orders`);
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors du chargement des commandes de la session',
       };
     }
   }

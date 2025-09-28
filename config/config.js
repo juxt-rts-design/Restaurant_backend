@@ -20,8 +20,8 @@ const config = {
     'http://localhost:3000', 
     'http://localhost:3001', 
     'http://localhost:5173',
-    'http://192.168.1.73:3000',
-    'http://192.168.1.73:5173'
+    'http://192.168.1.66:3000',
+    'http://192.168.1.66:5173'
   ],
   
   // Configuration des limites de taux

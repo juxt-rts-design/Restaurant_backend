@@ -44,7 +44,9 @@ const ClientPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCart, setShowCart] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'ESPECES' | 'MOBILE_MONEY' | 'CARTE' | 'A_LA_CAISSE' | null>(null);
+  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+  const [showBillPreview, setShowBillPreview] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'MOBILE_MONEY' | 'A_LA_CAISSE' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [currentSession, setCurrentSession] = useState<any>(null);
@@ -324,6 +326,9 @@ const ClientPage: React.FC = () => {
         quantite: item.quantity
       }));
       
+      console.log('Frontend - ID Session utilisé:', currentSession.id_session);
+      console.log('Frontend - Panier items:', panierItems);
+      
       const response = await apiService.validateOrder(currentSession.id_session, panierItems);
       if (response.success) {
         setShowPayment(true);
@@ -352,6 +357,8 @@ const ClientPage: React.FC = () => {
         showNotification('success', `Commande validée avec paiement ${selectedPaymentMethod}!`);
         clearCart();
         setShowPayment(false);
+        setShowPaymentOptions(false);
+        setSelectedPaymentMethod(null);
         setTimeout(() => navigate('/'), 2000);
       } else {
         showNotification('error', 'Erreur lors du paiement: ' + response.error);
@@ -649,13 +656,51 @@ const ClientPage: React.FC = () => {
           <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setShowPayment(false)} />
           <div className="absolute inset-0 flex items-center justify-center p-4">
             <div className="bg-white rounded-lg shadow-xl max-w-sm sm:max-w-md w-full p-4 sm:p-6">
-              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Choisir le mode de paiement</h2>
+              <div className="text-center mb-4">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="text-2xl">✅</span>
+                </div>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Commande envoyée !</h2>
+                <p className="text-sm text-gray-600">Votre commande a été transmise à la cuisine</p>
+              </div>
               
-              <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
+              <div className="flex space-x-3 mb-4">
+                <button
+                  onClick={() => {
+                    setShowBillPreview(true);
+                  }}
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                >
+                  <span>🛒</span>
+                  <span className="text-sm font-medium">Continuer la commande</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPaymentOptions(true);
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                >
+                  <span>💳</span>
+                  <span className="text-sm font-medium">Passer au paiement</span>
+                </button>
+              </div>
+              
+              <div className="text-center">
+                <button
+                  onClick={() => setShowPayment(false)}
+                  className="text-sm text-gray-500 hover:text-gray-700 underline"
+                >
+                  Annuler
+                </button>
+              </div>
+              
+              {showPaymentOptions && (
+                <div className="border-t pt-4">
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">Choisir le mode de paiement</h3>
+                
+                  <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
                 {[
-                  { id: 'ESPECES', label: 'Espèces', icon: '💰' },
                   { id: 'MOBILE_MONEY', label: 'Mobile Money', icon: '📱' },
-                  { id: 'CARTE', label: 'Carte bancaire', icon: '💳' },
                   { id: 'A_LA_CAISSE', label: 'Payer à la caisse', icon: '🏪' }
                 ].map((method) => (
                   <button
@@ -671,21 +716,85 @@ const ClientPage: React.FC = () => {
                     <span className="font-medium">{method.label}</span>
                   </button>
                 ))}
+                  </div>
+                  
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => {
+                        setShowPaymentOptions(false);
+                        setSelectedPaymentMethod(null);
+                      }}
+                      className="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Retour
+                    </button>
+                    <button
+                      onClick={handlePayment}
+                      disabled={!selectedPaymentMethod || isProcessing}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white py-2 px-4 rounded-lg transition-colors"
+                    >
+                      {isProcessing ? 'Traitement...' : 'Confirmer le paiement'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal d'aperçu de la facture */}
+      {showBillPreview && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setShowBillPreview(false)} />
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-sm sm:max-w-md w-full p-4 sm:p-6">
+              <div className="text-center mb-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="text-2xl">📋</span>
+                </div>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Aperçu de votre facture</h2>
+                <p className="text-sm text-gray-600">Voici le récapitulatif de votre commande actuelle</p>
+              </div>
+              
+              {/* Détails de la facture */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <div className="space-y-2">
+                  {cart.map((item) => (
+                    <div key={item.product.id_produit} className="flex justify-between items-center text-sm">
+                      <span className="text-gray-700">{item.product.nom_produit} x{item.quantity}</span>
+                      <span className="font-medium">{formatPrice(item.product.prix_cfa * item.quantity)} FCFA</span>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="border-t pt-2 mt-3">
+                  <div className="flex justify-between items-center font-semibold">
+                    <span>Total actuel:</span>
+                    <span className="text-lg text-blue-600">{formatPrice(getTotalPrice())} FCFA</span>
+                  </div>
+                </div>
               </div>
               
               <div className="flex space-x-3">
                 <button
-                  onClick={() => setShowPayment(false)}
-                  className="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  onClick={() => {
+                    setShowBillPreview(false);
+                    setShowPayment(false);
+                    clearCart();
+                    showNotification('success', 'Vous pouvez maintenant ajouter de nouveaux produits !');
+                  }}
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-lg transition-colors"
                 >
-                  Annuler
+                  Continuer
                 </button>
                 <button
-                  onClick={handlePayment}
-                  disabled={!selectedPaymentMethod || isProcessing}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white py-2 px-4 rounded-lg transition-colors"
+                  onClick={() => {
+                    setShowBillPreview(false);
+                  }}
+                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-lg transition-colors"
                 >
-                  {isProcessing ? 'Traitement...' : 'Confirmer'}
+                  Annuler
                 </button>
               </div>
             </div>

@@ -364,6 +364,10 @@ class ClientController {
       const { idSession } = req.params;
       const { panierItems } = req.body; // Recevoir le panier du frontend
 
+      console.log('=== VALIDATE ORDER ===');
+      console.log('ID Session reçu:', idSession);
+      console.log('Panier items:', panierItems);
+
       // Vérifier que la session existe
       const session = await Session.getById(idSession);
       if (!session) {
@@ -372,24 +376,55 @@ class ClientController {
           message: 'Session non trouvée'
         });
       }
+      console.log('Session trouvée:', session);
 
-      // Récupérer ou créer la commande en attente
+      // Récupérer ou créer la commande
       let commandes = await Commande.getBySession(idSession);
-      let commande = commandes.find(c => c.statut_commande === 'EN_ATTENTE');
-
+      console.log('Commandes existantes pour la session:', idSession, commandes);
+      
+      // Chercher d'abord la commande ENVOYÉ la plus récente (pour accumulation)
+      let commande = commandes.find(c => c.statut_commande === 'ENVOYÉ');
+      console.log('Commandes ENVOYÉ trouvées:', commandes.filter(c => c.statut_commande === 'ENVOYÉ'));
+      console.log('Commande ENVOYÉ sélectionnée:', commande);
+      
+      // Si pas de commande ENVOYÉ, chercher une commande EN_ATTENTE
       if (!commande) {
+        commande = commandes.find(c => c.statut_commande === 'EN_ATTENTE');
+        console.log('Commande EN_ATTENTE trouvée:', commande);
+      }
+      
+      // Si aucune commande existante, en créer une nouvelle
+      if (!commande) {
+        console.log('Aucune commande existante, création d\'une nouvelle');
         commande = await Commande.create(idSession);
+        console.log('Nouvelle commande créée:', commande);
+      } else {
+        console.log('Utilisation de la commande existante:', commande.id_commande, commande.statut_commande);
+        // Si c'est une commande ENVOYÉ, on va l'utiliser pour l'accumulation
+        if (commande.statut_commande === 'ENVOYÉ') {
+          console.log('Commande ENVOYÉ trouvée - accumulation des produits');
+        }
       }
 
       // Si on a reçu le panier du frontend, synchroniser avec la base de données
       if (panierItems && Array.isArray(panierItems)) {
-        // Vider la commande existante
-        await CommandeProduit.clearCommande(commande.id_commande);
+        console.log('Traitement du panier pour la commande:', commande.id_commande, 'Statut:', commande.statut_commande);
+        
+        // Si c'est une nouvelle commande, vider le panier
+        // Si c'est une commande existante ENVOYÉ, ajouter les nouveaux produits
+        if (commande.statut_commande === 'EN_ATTENTE') {
+          // Nouvelle commande : vider et remplir
+          console.log('Nouvelle commande - vidage du panier');
+          await CommandeProduit.clearCommande(commande.id_commande);
+        } else {
+          console.log('Commande existante ENVOYÉ - ajout des nouveaux produits');
+        }
         
         // Ajouter tous les items du panier
         for (const item of panierItems) {
           const produit = await Produit.getById(item.id_produit);
           if (produit) {
+            console.log('Ajout du produit:', item.id_produit, 'Quantité:', item.quantite);
             await CommandeProduit.add(commande.id_commande, item.id_produit, item.quantite, produit.prix_cfa);
           }
         }
@@ -404,19 +439,28 @@ class ClientController {
         });
       }
 
-      // Mettre à jour le statut de la commande
-      await Commande.updateStatus(commande.id_commande, 'ENVOYÉ');
+      // Mettre à jour le statut de la commande seulement si elle n'était pas déjà ENVOYÉ
+      if (commande.statut_commande !== 'ENVOYÉ') {
+        await Commande.updateStatus(commande.id_commande, 'ENVOYÉ');
+      }
 
       // Mettre à jour les stocks
       for (const item of panier) {
         await Produit.updateStock(item.id_produit, item.quantite);
       }
 
+      // Déterminer le message selon le contexte
+      const isNewOrder = commande.statut_commande === 'EN_ATTENTE' || commandes.length === 0;
+      const message = isNewOrder 
+        ? 'Commande validée et envoyée à la cuisine'
+        : 'Nouveaux produits ajoutés à votre commande existante';
+
       res.json({
         success: true,
-        message: 'Commande validée et envoyée à la cuisine',
+        message: message,
         data: {
-          commandeId: commande.id_commande
+          commandeId: commande.id_commande,
+          isNewOrder: isNewOrder
         }
       });
     } catch (error) {
@@ -486,6 +530,44 @@ class ClientController {
       });
     } catch (error) {
       console.error('Erreur lors de la création du paiement:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur interne du serveur'
+      });
+    }
+  }
+
+  // Récupérer les commandes d'une session
+  static async getSessionOrders(req, res) {
+    try {
+      const { idSession } = req.params;
+      
+      // Vérifier que la session existe
+      const session = await Session.getById(idSession);
+      if (!session) {
+        return res.status(404).json({
+          success: false,
+          message: 'Session non trouvée'
+        });
+      }
+
+      // Récupérer les commandes de la session
+      const commandes = await Commande.getBySession(idSession);
+      
+      // Pour chaque commande, récupérer les détails
+      const commandesAvecDetails = await Promise.all(
+        commandes.map(async (commande) => {
+          const details = await Commande.getDetails(commande.id_commande);
+          return details;
+        })
+      );
+
+      res.json({
+        success: true,
+        data: commandesAvecDetails
+      });
+    } catch (error) {
+      console.error('Erreur lors de la récupération des commandes de la session:', error);
       res.status(500).json({
         success: false,
         message: 'Erreur interne du serveur'

@@ -51,6 +51,11 @@ router.get('/session/:idSession/cart',
   ClientController.getCart
 );
 
+// Récupérer les commandes d'une session
+router.get('/session/:idSession/orders', 
+  ClientController.getSessionOrders
+);
+
 // Mettre à jour la quantité d'un produit
 router.put('/cart/:idLigne', 
   ClientController.updateQuantity

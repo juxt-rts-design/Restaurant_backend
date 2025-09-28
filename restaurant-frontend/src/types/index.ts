@@ -32,6 +32,15 @@ export interface Session {
   date_fermeture?: string;
 }
 
+export interface SessionResponse {
+  session: {
+    id: number;
+    client: string;
+    table: string;
+    dateOuverture: string;
+  };
+}
+
 export interface PanierItem {
   id_ligne: number;
   id_produit: number;
