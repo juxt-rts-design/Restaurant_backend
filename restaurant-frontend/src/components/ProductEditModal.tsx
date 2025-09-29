@@ -5,6 +5,7 @@ interface Product {
   id_produit: number;
   nom_produit: string;
   description: string;
+  photo_url?: string;
   prix_cfa: number;
   stock_disponible: number;
   actif: boolean;
@@ -14,7 +15,7 @@ interface ProductEditModalProps {
   product: Product;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (updatedProduct: Partial<Product>) => Promise<void>;
+  onSave: (updatedProduct: Partial<Product>, file?: File | null) => Promise<void>;
 }
 
 const ProductEditModal: React.FC<ProductEditModalProps> = ({
@@ -30,6 +31,8 @@ const ProductEditModal: React.FC<ProductEditModalProps> = ({
     stock_disponible: product.stock_disponible,
     actif: product.actif
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(product.photo_url || null);
   const [isSaving, setIsSaving] = useState(false);
 
   const handleInputChange = (field: string, value: string | number | boolean) => {
@@ -39,10 +42,24 @@ const ProductEditModal: React.FC<ProductEditModalProps> = ({
     }));
   };
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
+
+  const removeImage = () => {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await onSave(formData);
+      await onSave(formData, selectedFile);
       onClose();
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
@@ -107,6 +124,40 @@ const ProductEditModal: React.FC<ProductEditModalProps> = ({
                 rows={3}
                 placeholder="Description du produit"
               />
+            </div>
+
+            {/* Photo */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Photo du produit
+              </label>
+              <div className="space-y-3">
+                {previewUrl && (
+                  <div className="relative">
+                    <img
+                      src={previewUrl}
+                      alt="Aperçu"
+                      className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500">
+                  Formats acceptés: JPG, PNG, GIF. Taille max: 5MB
+                </p>
+              </div>
             </div>
 
             {/* Prix */}

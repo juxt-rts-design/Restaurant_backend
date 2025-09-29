@@ -3,6 +3,7 @@ const router = express.Router();
 const ManagerController = require('../controllers/managerController');
 const { authenticateEmployee, requireRole } = require('../middleware/auth');
 const { validateId, validateIdProduit, validateProduit, validateTable, validateSearch } = require('../middleware/validation');
+const upload = require('../middleware/upload');
 
 // Toutes les routes du manager nécessitent une authentification
 // Temporairement désactivé pour les tests
@@ -16,11 +17,16 @@ router.get('/dashboard',
 // Gestion des produits
 router.route('/products')
   .get(validateSearch, ManagerController.getAllProducts)
-  .post(validateProduit, ManagerController.createProduct);
+  .post(upload.single('photo'), validateProduit, ManagerController.createProduct);
 
 router.route('/products/:idProduit')
-  .put(validateIdProduit, ManagerController.updateProduct)
+  .put(upload.single('photo'), validateIdProduit, ManagerController.updateProduct)
   .delete(validateIdProduit, ManagerController.deleteProduct);
+
+// Gestion des catégories
+router.route('/categories')
+  .get(ManagerController.getAllCategories)
+  .post(ManagerController.createCategory);
 
 // Gestion des tables
 router.route('/tables')

@@ -9,7 +9,7 @@ const helmetConfig = helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      imgSrc: ["'self'", "data:", "https:", "http:"],
       connectSrc: ["'self'"],
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
@@ -56,10 +56,10 @@ const qrCodeRateLimit = rateLimit({
 const validateContentType = (req, res, next) => {
   if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
     const contentType = req.get('Content-Type');
-    if (!contentType || !contentType.includes('application/json')) {
+    if (!contentType || (!contentType.includes('application/json') && !contentType.includes('multipart/form-data'))) {
       return res.status(400).json({
         success: false,
-        message: 'Content-Type doit être application/json'
+        message: 'Content-Type doit être application/json ou multipart/form-data'
       });
     }
   }

@@ -76,4 +76,25 @@ router.get('/search',
   CaisseController.search
 );
 
+// Générer une facture pour une commande
+router.get('/orders/:idCommande/invoice', 
+  validateIdCommande,
+  CaisseController.generateInvoice
+);
+
+// Rechercher des factures archivées
+router.get('/invoices/search', 
+  CaisseController.rechercherFactures
+);
+
+// Récupérer une facture archivée par numéro
+router.get('/invoices/:numeroFacture', 
+  CaisseController.getFactureArchivee
+);
+
+// Obtenir les statistiques des factures
+router.get('/invoices/statistics', 
+  CaisseController.getStatistiquesFactures
+);
+
 module.exports = router;

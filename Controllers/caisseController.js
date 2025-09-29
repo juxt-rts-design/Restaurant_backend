@@ -4,6 +4,7 @@ const Session = require('../models/Session');
 const Client = require('../models/Client');
 const Table = require('../models/Table');
 const SessionManager = require('../models/SessionManager');
+const FactureArchivee = require('../models/FactureArchivee');
 
 class CaisseController {
   // Récupérer toutes les commandes en attente
@@ -190,6 +191,17 @@ class CaisseController {
       // Valider le paiement
       await Paiement.validate(idPaiement);
 
+      // Générer automatiquement une facture après validation
+      let factureGeneree = null;
+      try {
+        factureGeneree = await this._generateInvoiceInternal(paiement.id_commande);
+        if (factureGeneree) {
+          console.log(`✅ Facture générée automatiquement: ${factureGeneree.numeroFacture}`);
+        }
+      } catch (error) {
+        console.log('⚠️ Erreur lors de la génération automatique de facture:', error.message);
+      }
+
       // Récupérer la session du paiement pour vérifier la fermeture automatique
       const commande = await Commande.getById(paiement.id_commande);
       const sessionStatus = await SessionManager.getSessionStatus(commande.id_session);
@@ -202,14 +214,52 @@ class CaisseController {
 
       res.json({
         success: true,
-        message: 'Paiement validé avec succès',
+        message: 'Paiement effectué avec succès - Facture générée',
         data: {
           sessionClosed: sessionClosed,
-          sessionStatus: sessionStatus
+          sessionStatus: sessionStatus,
+          factureGeneree: factureGeneree
         }
       });
     } catch (error) {
       console.error('Erreur lors de la validation du paiement:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur interne du serveur'
+      });
+    }
+  }
+
+  // Archiver un paiement validé
+  static async archivePayment(req, res) {
+    try {
+      const { idPaiement } = req.params;
+      
+      // Vérifier que le paiement existe
+      const paiement = await Paiement.getById(idPaiement);
+      if (!paiement) {
+        return res.status(404).json({
+          success: false,
+          message: 'Paiement non trouvé'
+        });
+      }
+
+      if (paiement.statut_paiement !== 'EFFECTUÉ') {
+        return res.status(400).json({
+          success: false,
+          message: 'Seuls les paiements effectués peuvent être archivés'
+        });
+      }
+
+      // Archiver le paiement
+      await Paiement.archive(idPaiement);
+
+      res.json({
+        success: true,
+        message: 'Paiement archivé avec succès'
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'archivage du paiement:', error);
       res.status(500).json({
         success: false,
         message: 'Erreur interne du serveur'
@@ -245,8 +295,8 @@ class CaisseController {
       const stats = await Paiement.getStats(today, today);
 
       // Calculer les totaux
-      const totalVentes = stats.reduce((sum, stat) => sum + stat.montant_effectue, 0);
-      const totalPaiements = stats.reduce((sum, stat) => sum + stat.paiements_effectues, 0);
+      const totalVentes = stats.reduce((sum, stat) => sum + parseInt(stat.montant_effectue || 0), 0);
+      const totalPaiements = stats.reduce((sum, stat) => sum + parseInt(stat.paiements_effectues || 0), 0);
 
       res.json({
         success: true,
@@ -417,6 +467,288 @@ class CaisseController {
         success: false,
         message: 'Erreur interne du serveur'
       });
+    }
+  }
+
+  // Générer une facture pour une commande
+  static async generateInvoice(req, res) {
+    try {
+      const { idCommande } = req.params;
+      
+      // Récupérer les détails de la commande
+      const commande = await Commande.getDetails(idCommande);
+      if (!commande) {
+        return res.status(404).json({
+          success: false,
+          message: 'Commande non trouvée'
+        });
+      }
+
+      // Récupérer les informations de paiement si elles existent
+      let paiement = null;
+      try {
+        const paiements = await Paiement.getByCommande(idCommande);
+        paiement = paiements.length > 0 ? paiements[0] : null;
+        if (!paiement) {
+          console.log(`⚠️  Aucun paiement trouvé pour la commande ${idCommande} - Facture générée sans paiement`);
+        }
+      } catch (error) {
+        console.log(`⚠️  Erreur lors de la récupération du paiement pour la commande ${idCommande}:`, error.message);
+      }
+
+      // Générer un numéro de facture unique
+      const numeroFacture = `FACT-${Date.now()}-${idCommande}`;
+      
+      // Calculer les totaux
+      const sousTotal = commande.total;
+      const tva = 0; // Pas de TVA pour l'instant
+      const totalTTC = sousTotal + tva;
+
+      // Créer l'objet facture
+      const facture = {
+        numeroFacture,
+        dateFacture: new Date().toISOString(),
+        commande: {
+          id: commande.id_commande,
+          date: commande.date_commande,
+          statut: commande.statut_commande
+        },
+        client: {
+          nom: commande.nom_complet,
+          table: commande.nom_table
+        },
+        produits: commande.produits.map(produit => ({
+          nom: produit.nom_produit,
+          quantite: produit.quantite,
+          prixUnitaire: produit.prix_unitaire,
+          prixTotal: produit.prix_unitaire * produit.quantite
+        })),
+        totaux: {
+          sousTotal,
+          tva,
+          totalTTC
+        },
+        paiement: paiement ? {
+          methode: paiement.methode_paiement,
+          statut: paiement.statut_paiement,
+          codeValidation: paiement.code_validation,
+          datePaiement: paiement.date_paiement
+        } : {
+          methode: 'NON_PAYÉ',
+          statut: 'EN_ATTENTE',
+          codeValidation: null,
+          datePaiement: null
+        },
+        restaurant: {
+          nom: "RUNGWE",
+          adresse: "Libreville, Gabon",
+          telephone: "+241 76 23 49 42",
+          email: "renaryella2003@gmail.com"
+        }
+      };
+
+      // Archiver la facture automatiquement
+      try {
+        await FactureArchivee.archiver(facture);
+        console.log(`Facture ${numeroFacture} archivée avec succès`);
+      } catch (archiveError) {
+        console.error('Erreur lors de l\'archivage de la facture:', archiveError);
+        // On continue même si l'archivage échoue
+      }
+
+      res.json({
+        success: true,
+        data: facture,
+        message: paiement ? 
+          'Facture générée et archivée avec succès' : 
+          'Facture générée et archivée avec succès (sans paiement)'
+      });
+    } catch (error) {
+      console.error('Erreur lors de la génération de la facture:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur interne du serveur'
+      });
+    }
+  }
+
+  // Rechercher des factures archivées
+  static async rechercherFactures(req, res) {
+    try {
+      const filtres = req.query;
+      
+      // Conversion des paramètres
+      const filtresFormates = {
+        dateDebut: filtres.dateDebut,
+        dateFin: filtres.dateFin,
+        nomClient: filtres.nomClient,
+        nomTable: filtres.nomTable,
+        montantMin: filtres.montantMin ? parseFloat(filtres.montantMin) : null,
+        montantMax: filtres.montantMax ? parseFloat(filtres.montantMax) : null,
+        methodePaiement: filtres.methodePaiement,
+        numeroFacture: filtres.numeroFacture,
+        limit: filtres.limit ? parseInt(filtres.limit) : 50,
+        offset: filtres.offset ? parseInt(filtres.offset) : 0
+      };
+
+      const factures = await FactureArchivee.rechercher(filtresFormates);
+
+      res.json({
+        success: true,
+        data: factures,
+        message: `${factures.length} facture(s) trouvée(s)`
+      });
+    } catch (error) {
+      console.error('Erreur lors de la recherche de factures:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur interne du serveur'
+      });
+    }
+  }
+
+  // Récupérer une facture archivée par numéro
+  static async getFactureArchivee(req, res) {
+    try {
+      const { numeroFacture } = req.params;
+      
+      const facture = await FactureArchivee.getByNumero(numeroFacture);
+      if (!facture) {
+        return res.status(404).json({
+          success: false,
+          message: 'Facture non trouvée'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: facture,
+        message: 'Facture récupérée avec succès'
+      });
+    } catch (error) {
+      console.error('Erreur lors de la récupération de la facture:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur interne du serveur'
+      });
+    }
+  }
+
+  // Obtenir les statistiques des factures
+  static async getStatistiquesFactures(req, res) {
+    try {
+      const { dateDebut, dateFin } = req.query;
+      
+      if (!dateDebut || !dateFin) {
+        return res.status(400).json({
+          success: false,
+          message: 'Les paramètres dateDebut et dateFin sont requis'
+        });
+      }
+
+      const [statistiques, totalVentes] = await Promise.all([
+        FactureArchivee.getStatistiques(dateDebut, dateFin),
+        FactureArchivee.getTotalVentes(dateDebut, dateFin)
+      ]);
+
+      res.json({
+        success: true,
+        data: {
+          statistiques,
+          totalVentes,
+          periode: { dateDebut, dateFin }
+        },
+        message: 'Statistiques récupérées avec succès'
+      });
+    } catch (error) {
+      console.error('Erreur lors de la récupération des statistiques:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur interne du serveur'
+      });
+    }
+  }
+
+  // Méthode interne pour générer une facture (utilisée par validatePayment)
+  static async _generateInvoiceInternal(idCommande) {
+    try {
+      // Récupérer les détails de la commande
+      const commande = await Commande.getDetails(idCommande);
+      if (!commande) {
+        throw new Error('Commande non trouvée');
+      }
+
+      // Récupérer les informations de paiement
+      let paiement = null;
+      try {
+        const paiements = await Paiement.getByCommande(idCommande);
+        paiement = paiements.length > 0 ? paiements[0] : null;
+      } catch (error) {
+        console.log('Aucun paiement trouvé pour cette commande');
+      }
+
+      // Générer un numéro de facture unique
+      const numeroFacture = `FACT-${Date.now()}-${idCommande}`;
+      
+      // Calculer les totaux
+      const sousTotal = commande.total;
+      const tva = 0;
+      const totalTTC = sousTotal + tva;
+
+      // Créer l'objet facture
+      const facture = {
+        numeroFacture,
+        dateFacture: new Date().toISOString(),
+        commande: {
+          id: commande.id_commande,
+          date: commande.date_commande,
+          statut: commande.statut_commande
+        },
+        client: {
+          nom: commande.nom_complet,
+          table: commande.nom_table
+        },
+        produits: commande.produits.map(produit => ({
+          nom: produit.nom_produit,
+          quantite: produit.quantite,
+          prixUnitaire: produit.prix_unitaire,
+          prixTotal: produit.prix_unitaire * produit.quantite
+        })),
+        totaux: {
+          sousTotal,
+          tva,
+          totalTTC
+        },
+        paiement: paiement ? {
+          methode: paiement.methode_paiement,
+          statut: paiement.statut_paiement,
+          codeValidation: paiement.code_validation,
+          datePaiement: paiement.date_paiement
+        } : {
+          methode: 'NON_PAYÉ',
+          statut: 'EN_ATTENTE',
+          codeValidation: null,
+          datePaiement: null
+        },
+        restaurant: {
+          nom: "RUNGWE",
+          adresse: "Libreville, Gabon",
+          telephone: "+241 76 23 49 42",
+          email: "renaryella2003@gmail.com"
+        }
+      };
+
+      // Archiver la facture automatiquement
+      try {
+        await FactureArchivee.archiver(facture);
+        console.log(`Facture ${numeroFacture} archivée avec succès`);
+      } catch (archiveError) {
+        console.error('Erreur lors de l\'archivage de la facture:', archiveError);
+      }
+
+      return facture;
+    } catch (error) {
+      throw new Error(`Erreur lors de la génération de la facture: ${error.message}`);
     }
   }
 }

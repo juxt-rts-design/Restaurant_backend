@@ -280,6 +280,77 @@ class ApiService {
     }
   }
 
+  async generateInvoice(orderId: number): Promise<ApiResponse<any>> {
+    try {
+      const response = await api.get(`/api/caisse/orders/${orderId}/invoice`);
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la génération de la facture',
+      };
+    }
+  }
+
+  async searchInvoices(filters: any): Promise<ApiResponse<any[]>> {
+    try {
+      const params = new URLSearchParams();
+      Object.keys(filters).forEach(key => {
+        if (filters[key] !== null && filters[key] !== undefined && filters[key] !== '') {
+          params.append(key, filters[key]);
+        }
+      });
+      
+      const response = await api.get(`/api/caisse/invoices/search?${params.toString()}`);
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la recherche de factures',
+      };
+    }
+  }
+
+  async getArchivedInvoice(numeroFacture: string): Promise<ApiResponse<any>> {
+    try {
+      const response = await api.get(`/api/caisse/invoices/${numeroFacture}`);
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la récupération de la facture',
+      };
+    }
+  }
+
+  async getInvoiceStatistics(dateDebut: string, dateFin: string): Promise<ApiResponse<any>> {
+    try {
+      const response = await api.get(`/api/caisse/invoices/statistics?dateDebut=${dateDebut}&dateFin=${dateFin}`);
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la récupération des statistiques',
+      };
+    }
+  }
+
   async markOrderAsServed(orderId: number): Promise<ApiResponse<void>> {
     try {
       const response = await api.put(`/api/caisse/orders/${orderId}/serve`, {}, {
@@ -333,6 +404,25 @@ class ApiService {
       return {
         success: false,
         error: error.response?.data?.message || 'Erreur lors de la validation',
+      };
+    }
+  }
+
+  async archivePayment(paymentId: number): Promise<ApiResponse<void>> {
+    try {
+      const response = await api.put(`/api/caisse/payments/${paymentId}/archive`, {}, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      return {
+        success: response.data.success,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de l\'archivage',
       };
     }
   }
@@ -404,6 +494,22 @@ class ApiService {
     }
   }
 
+  async getManagerDashboard(): Promise<ApiResponse<any>> {
+    try {
+      const response = await api.get('/api/manager/dashboard');
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors du chargement du dashboard manager',
+      };
+    }
+  }
+
   // Méthodes pour la gestion du menu (Manager)
   async getAllProducts(): Promise<ApiResponse<any[]>> {
     try {
@@ -426,9 +532,28 @@ class ApiService {
     description: string;
     prixCfa: number;
     stockDisponible: number;
-  }): Promise<ApiResponse<any>> {
+    idCategorie?: number;
+  }, photoFile?: File): Promise<ApiResponse<any>> {
     try {
-      const response = await api.post('/api/manager/products', productData);
+      const formData = new FormData();
+      formData.append('nomProduit', productData.nomProduit);
+      formData.append('description', productData.description);
+      formData.append('prixCfa', productData.prixCfa.toString());
+      formData.append('stockDisponible', productData.stockDisponible.toString());
+      
+      if (productData.idCategorie) {
+        formData.append('idCategorie', productData.idCategorie.toString());
+      }
+      
+      if (photoFile) {
+        formData.append('photo', photoFile);
+      }
+
+      const response = await api.post('/api/manager/products', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       return {
         success: response.data.success,
         data: response.data.data,
@@ -448,9 +573,25 @@ class ApiService {
     prixCfa?: number;
     stockDisponible?: number;
     actif?: boolean;
-  }): Promise<ApiResponse<any>> {
+  }, photoFile?: File): Promise<ApiResponse<any>> {
     try {
-      const response = await api.put(`/api/manager/products/${idProduit}`, productData);
+      const formData = new FormData();
+      
+      if (productData.nomProduit) formData.append('nomProduit', productData.nomProduit);
+      if (productData.description !== undefined) formData.append('description', productData.description);
+      if (productData.prixCfa) formData.append('prixCfa', productData.prixCfa.toString());
+      if (productData.stockDisponible !== undefined) formData.append('stockDisponible', productData.stockDisponible.toString());
+      if (productData.actif !== undefined) formData.append('actif', productData.actif.toString());
+      
+      if (photoFile) {
+        formData.append('photo', photoFile);
+      }
+
+      const response = await api.put(`/api/manager/products/${idProduit}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       return {
         success: response.data.success,
         data: response.data.data,
@@ -475,6 +616,23 @@ class ApiService {
       return {
         success: false,
         error: error.response?.data?.message || 'Erreur lors de la suppression du produit',
+      };
+    }
+  }
+
+  // Gestion des catégories
+  async getCategories(): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await api.get('/api/manager/categories');
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors du chargement des catégories',
       };
     }
   }

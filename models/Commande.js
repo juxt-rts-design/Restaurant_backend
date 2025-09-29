@@ -68,6 +68,23 @@ class Commande {
     }
   }
 
+  // Récupérer toutes les commandes servies (statut SERVI)
+  static async getServed() {
+    try {
+      const [rows] = await pool.execute(
+        'SELECT c.*, s.id_table, s.id_client, cl.nom_complet, t.nom_table ' +
+        'FROM commandes c ' +
+        'JOIN sessions s ON c.id_session = s.id_session ' +
+        'JOIN clients cl ON s.id_client = cl.id_client ' +
+        'JOIN tables t ON s.id_table = t.id_table ' +
+        'WHERE c.statut_commande = "SERVI" ORDER BY c.date_commande DESC'
+      );
+      return rows;
+    } catch (error) {
+      throw new Error(`Erreur lors de la récupération des commandes servies: ${error.message}`);
+    }
+  }
+
   // Mettre à jour le statut d'une commande
   static async updateStatus(idCommande, statutCommande) {
     try {

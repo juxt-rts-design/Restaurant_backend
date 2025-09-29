@@ -2,19 +2,21 @@ const { pool } = require('../config/database');
 
 class Produit {
   // Créer un nouveau produit
-  static async create(nomProduit, description, prixCfa, stockDisponible = 0) {
+  static async create(nomProduit, description, prixCfa, stockDisponible = 0, photoUrl = null, idCategorie = null) {
     try {
       const [result] = await pool.execute(
-        'INSERT INTO produits (nom_produit, description, prix_cfa, stock_disponible) VALUES (?, ?, ?, ?)',
-        [nomProduit, description, prixCfa, stockDisponible]
+        'INSERT INTO produits (nom_produit, description, photo_url, prix_cfa, stock_disponible, id_categorie) VALUES (?, ?, ?, ?, ?, ?)',
+        [nomProduit, description, photoUrl, prixCfa, stockDisponible, idCategorie]
       );
       
       return {
         id: result.insertId,
         nomProduit,
         description,
+        photoUrl,
         prixCfa,
         stockDisponible,
+        idCategorie,
         actif: true
       };
     } catch (error) {
@@ -39,7 +41,10 @@ class Produit {
   static async getAll() {
     try {
       const [rows] = await pool.execute(
-        'SELECT * FROM produits WHERE actif = 1 ORDER BY nom_produit'
+        'SELECT p.*, c.nom_categorie, c.icone, c.couleur ' +
+        'FROM produits p ' +
+        'LEFT JOIN categories c ON p.id_categorie = c.id_categorie ' +
+        'WHERE p.actif = 1 ORDER BY p.nom_produit'
       );
       return rows;
     } catch (error) {
@@ -73,6 +78,14 @@ class Produit {
       if (data.description !== undefined) {
         fields.push('description = ?');
         values.push(data.description);
+      }
+      if (data.photoUrl !== undefined) {
+        fields.push('photo_url = ?');
+        values.push(data.photoUrl);
+      }
+      if (data.idCategorie !== undefined) {
+        fields.push('id_categorie = ?');
+        values.push(data.idCategorie);
       }
       if (data.prixCfa) {
         fields.push('prix_cfa = ?');

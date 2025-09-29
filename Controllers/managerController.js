@@ -1,9 +1,12 @@
 const Produit = require('../models/Produit');
+const Categorie = require('../models/Categorie');
 const Table = require('../models/Table');
 const Commande = require('../models/Commande');
 const Paiement = require('../models/Paiement');
 const Session = require('../models/Session');
 const Client = require('../models/Client');
+const upload = require('../middleware/upload');
+const path = require('path');
 
 class ManagerController {
   // Récupérer le tableau de bord
@@ -13,8 +16,8 @@ class ManagerController {
       
       // Statistiques des ventes
       const statsVentes = await Paiement.getStats(today, today);
-      const totalVentes = statsVentes.reduce((sum, stat) => sum + stat.montant_effectue, 0);
-      const totalPaiements = statsVentes.reduce((sum, stat) => sum + stat.paiements_effectues, 0);
+      const totalVentes = statsVentes.reduce((sum, stat) => sum + parseInt(stat.montant_effectue || 0), 0);
+      const totalPaiements = statsVentes.reduce((sum, stat) => sum + parseInt(stat.paiements_effectues || 0), 0);
 
       // Sessions actives
       const sessionsActives = await Session.getOpenSessions();
@@ -22,6 +25,12 @@ class ManagerController {
 
       // Commandes en attente
       const commandesEnAttente = await Commande.getPending();
+
+      // Commandes servies (statut SERVI)
+      const commandesServies = await Commande.getServed();
+
+      // Paiements en attente
+      const paiementsEnAttente = await Paiement.getPending();
 
       // Produits en rupture de stock
       const tousProduits = await Produit.getAll();
@@ -44,7 +53,12 @@ class ManagerController {
           },
           commandes: {
             enAttente: commandesEnAttente.length,
+            servies: commandesServies.length,
             recentes: commandesRecentes
+          },
+          paiements: {
+            enAttente: paiementsEnAttente.filter(p => p.statut_paiement === 'EN_COURS').length,
+            effectues: paiementsEnAttente.filter(p => p.statut_paiement === 'EFFECTUÉ').length
           },
           stock: {
             produitsRupture: produitsRupture.length,
@@ -64,9 +78,15 @@ class ManagerController {
   // Gestion des produits
   static async createProduct(req, res) {
     try {
-      const { nomProduit, description, prixCfa, stockDisponible } = req.body;
+      const { nomProduit, description, prixCfa, stockDisponible, idCategorie } = req.body;
       
-      const produit = await Produit.create(nomProduit, description, prixCfa, stockDisponible);
+      // Gérer l'upload de l'image si présente
+      let photoUrl = null;
+      if (req.file) {
+        photoUrl = `/uploads/products/${req.file.filename}`;
+      }
+      
+      const produit = await Produit.create(nomProduit, description, prixCfa, stockDisponible, photoUrl, idCategorie);
 
       res.status(201).json({
         success: true,
@@ -86,6 +106,11 @@ class ManagerController {
     try {
       const { idProduit } = req.params;
       const updateData = req.body;
+      
+      // Gérer l'upload de l'image si présente
+      if (req.file) {
+        updateData.photoUrl = `/uploads/products/${req.file.filename}`;
+      }
       
       const produit = await Produit.update(idProduit, updateData);
 
@@ -115,6 +140,44 @@ class ManagerController {
       });
     } catch (error) {
       console.error('Erreur lors de la suppression du produit:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur interne du serveur'
+      });
+    }
+  }
+
+  // Gestion des catégories
+  static async getAllCategories(req, res) {
+    try {
+      const categories = await Categorie.getAll();
+
+      res.json({
+        success: true,
+        data: categories
+      });
+    } catch (error) {
+      console.error('Erreur lors de la récupération des catégories:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur interne du serveur'
+      });
+    }
+  }
+
+  static async createCategory(req, res) {
+    try {
+      const { nomCategorie, description, icone, couleur } = req.body;
+      
+      const categorie = await Categorie.create(nomCategorie, description, icone, couleur);
+
+      res.status(201).json({
+        success: true,
+        message: 'Catégorie créée avec succès',
+        data: categorie
+      });
+    } catch (error) {
+      console.error('Erreur lors de la création de la catégorie:', error);
       res.status(500).json({
         success: false,
         message: 'Erreur interne du serveur'
@@ -254,9 +317,9 @@ class ManagerController {
       const stats = await Paiement.getStats(dateDebut, dateFin);
       
       // Calculer les totaux
-      const totalVentes = stats.reduce((sum, stat) => sum + stat.montant_effectue, 0);
-      const totalPaiements = stats.reduce((sum, stat) => sum + stat.paiements_effectues, 0);
-      const totalTentatives = stats.reduce((sum, stat) => sum + stat.nombre_paiements, 0);
+      const totalVentes = stats.reduce((sum, stat) => sum + parseInt(stat.montant_effectue || 0), 0);
+      const totalPaiements = stats.reduce((sum, stat) => sum + parseInt(stat.paiements_effectues || 0), 0);
+      const totalTentatives = stats.reduce((sum, stat) => sum + parseInt(stat.nombre_paiements || 0), 0);
       
       // Taux de réussite
       const tauxReussite = totalTentatives > 0 ? (totalPaiements / totalTentatives * 100).toFixed(2) : 0;

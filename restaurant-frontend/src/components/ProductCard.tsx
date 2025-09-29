@@ -6,6 +6,7 @@ interface Product {
   id_produit: number;
   nom_produit: string;
   description: string;
+  photo_url?: string;
   prix_cfa: number;
   stock_disponible: number;
   actif: boolean;
@@ -26,8 +27,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ produit, onAddToCart, isAddin
     return new Intl.NumberFormat('fr-FR').format(price);
   };
 
-  // Générer une image placeholder basée sur le nom du produit
-  const getProductImage = (nomProduit: string) => {
+  // Obtenir l'image du produit (vraie image ou placeholder)
+  const getProductImage = (produit: Product) => {
+    // Si le produit a une vraie image, l'utiliser
+    if (produit.photo_url) {
+      return `http://localhost:3000${produit.photo_url}`;
+    }
+    
+    // Sinon, utiliser les images placeholder basées sur le nom
     const imageMap: { [key: string]: string } = {
       'poulet': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=300&h=200&fit=crop',
       'poisson': 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=300&h=200&fit=crop',
@@ -55,7 +62,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ produit, onAddToCart, isAddin
       'pomme': 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300&h=200&fit=crop'
     };
 
-    const nomLower = nomProduit.toLowerCase();
+    const nomLower = produit.nom_produit.toLowerCase();
     for (const [key, image] of Object.entries(imageMap)) {
       if (nomLower.includes(key)) {
         return image;
@@ -74,7 +81,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ produit, onAddToCart, isAddin
       {/* Image du produit */}
       <div className="relative h-40 sm:h-48 overflow-hidden">
         <img
-          src={getProductImage(produit.nom_produit)}
+          src={getProductImage(produit)}
           alt={produit.nom_produit}
           className="product-image w-full h-full object-cover"
           onError={(e) => {

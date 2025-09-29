@@ -23,7 +23,8 @@ class SessionManager {
       // Si toutes les commandes sont servies ou annulées
       if (commandesEnAttente.length === 0 && commandesEnvoyees.length === 0) {
         // Vérifier que tous les paiements sont effectués
-        const paiementsEnCours = await Paiement.getPendingBySession(idSession);
+        const paiements = await Paiement.getBySession(idSession);
+        const paiementsEnCours = paiements.filter(p => p.statut_paiement === 'EN_COURS');
         
         if (paiementsEnCours.length === 0) {
           return { canClose: true, reason: 'Toutes les commandes servies et payées' };
@@ -58,7 +59,8 @@ class SessionManager {
   static async closeAfterPayment(idSession) {
     try {
       // Vérifier que tous les paiements sont effectués
-      const paiementsEnCours = await Paiement.getPendingBySession(idSession);
+      const paiements = await Paiement.getBySession(idSession);
+      const paiementsEnCours = paiements.filter(p => p.statut_paiement === 'EN_COURS');
       
       if (paiementsEnCours.length === 0) {
         // Vérifier que toutes les commandes sont servies

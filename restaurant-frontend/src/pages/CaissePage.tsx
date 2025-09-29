@@ -14,14 +14,17 @@ import {
   XCircle,
   Users,
   Lock,
-  ArrowLeft
+  ArrowLeft,
+  FileText
 } from 'lucide-react';
+import InvoiceModal from '../components/InvoiceModal';
+import InvoiceSearchModal from '../components/InvoiceSearchModal';
 
 const CaissePage: React.FC = () => {
   const navigate = useNavigate();
   const { setLoading, setError } = useAppContext();
   
-  const [activeTab, setActiveTab] = useState<'commandes' | 'paiements' | 'sessions'>('commandes');
+  const [activeTab, setActiveTab] = useState<'commandes' | 'paiements' | 'sessions' | 'archives'>('commandes');
   const [commandes, setCommandes] = useState<CommandeWithDetails[]>([]);
   const [paiements, setPaiements] = useState<Paiement[]>([]);
   const [sessions, setSessions] = useState<SessionWithDetails[]>([]);
@@ -31,9 +34,23 @@ const CaissePage: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCloseSessionModal, setShowCloseSessionModal] = useState(false);
   const [sessionToClose, setSessionToClose] = useState<SessionWithDetails | null>(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceData, setInvoiceData] = useState<any>(null);
+  const [showInvoiceSearchModal, setShowInvoiceSearchModal] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     loadData();
+  }, [activeTab]);
+
+  // Rafraîchissement automatique toutes les 30 secondes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadData();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   const loadData = async () => {
@@ -115,6 +132,19 @@ const CaissePage: React.FC = () => {
     }
   };
 
+  const handleArchivePayment = async (idPaiement: number) => {
+    setIsProcessing(true);
+    try {
+      await apiService.archivePayment(idPaiement);
+      await loadData();
+    } catch (error) {
+      setError('Erreur lors de l\'archivage du paiement');
+      console.error('Erreur:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleCloseSession = async (session: SessionWithDetails) => {
     setSessionToClose(session);
     setShowCloseSessionModal(true);
@@ -164,6 +194,62 @@ const CaissePage: React.FC = () => {
     }
   };
 
+  const handleGenerateInvoice = async (idCommande: number) => {
+    setIsProcessing(true);
+    try {
+      const response = await apiService.generateInvoice(idCommande);
+      if (response.success && response.data) {
+        setInvoiceData(response.data);
+        setShowInvoiceModal(true);
+      } else {
+        setError(response.error || 'Erreur lors de la génération de la facture');
+      }
+    } catch (error) {
+      setError('Erreur lors de la génération de la facture');
+      console.error('Erreur:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSearchInvoices = async (filters: any) => {
+    setIsSearching(true);
+    try {
+      const response = await apiService.searchInvoices(filters);
+      if (response.success && response.data) {
+        setSearchResults(response.data);
+      } else {
+        setError(response.error || 'Erreur lors de la recherche de factures');
+        setSearchResults([]);
+      }
+    } catch (error) {
+      setError('Erreur lors de la recherche de factures');
+      console.error('Erreur:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleViewArchivedInvoice = async (numeroFacture: string) => {
+    setIsProcessing(true);
+    try {
+      const response = await apiService.getArchivedInvoice(numeroFacture);
+      if (response.success && response.data) {
+        setInvoiceData(response.data);
+        setShowInvoiceModal(true);
+        setShowInvoiceSearchModal(false);
+      } else {
+        setError(response.error || 'Erreur lors de la récupération de la facture');
+      }
+    } catch (error) {
+      setError('Erreur lors de la récupération de la facture');
+      console.error('Erreur:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR').format(price);
   };
@@ -185,7 +271,7 @@ const CaissePage: React.FC = () => {
       case 'EN_COURS':
         return 'bg-orange-100 text-orange-800';
       case 'EFFECTUÉ':
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-100 text-emerald-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -280,7 +366,8 @@ const CaissePage: React.FC = () => {
               {[
                 { id: 'commandes', label: 'Commandes', icon: ShoppingCart },
                 { id: 'paiements', label: 'Paiements', icon: CreditCard },
-                { id: 'sessions', label: 'Sessions', icon: Users }
+                { id: 'sessions', label: 'Sessions', icon: Users },
+                { id: 'archives', label: 'Archives', icon: FileText }
               ].map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -375,6 +462,14 @@ const CaissePage: React.FC = () => {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
+                        <button
+                          onClick={() => handleGenerateInvoice(commande.id_commande)}
+                          disabled={isProcessing}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="Générer facture"
+                        >
+                          <FileText className="w-4 h-4" />
+                        </button>
                         {commande.statut_commande === 'ENVOYÉ' && (
                           <button
                             onClick={() => handleMarkAsServed(commande.id_commande)}
@@ -447,15 +542,28 @@ const CaissePage: React.FC = () => {
                         {paiement.code_validation}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        {paiement.statut_paiement === 'EN_COURS' && (
-                          <button
-                            onClick={() => handleValidatePayment(paiement.id_paiement)}
-                            disabled={isProcessing}
-                            className="text-green-600 hover:text-green-900"
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                        )}
+                        <div className="flex items-center space-x-2">
+                          {paiement.statut_paiement === 'EN_COURS' && (
+                            <button
+                              onClick={() => handleValidatePayment(paiement.id_paiement)}
+                              disabled={isProcessing}
+                              className="text-green-600 hover:text-green-900"
+                              title="Valider le paiement"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                          )}
+                          {paiement.statut_paiement === 'EFFECTUÉ' && (
+                            <button
+                              onClick={() => handleArchivePayment(paiement.id_paiement)}
+                              disabled={isProcessing}
+                              className="text-red-600 hover:text-red-900"
+                              title="Archiver le paiement"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -527,6 +635,27 @@ const CaissePage: React.FC = () => {
             </div>
           )}
 
+          {activeTab === 'archives' && (
+            <div className="text-center py-12">
+              <div className="text-gray-400 mb-4">
+                <FileText className="w-12 h-12 mx-auto" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Archives des Factures
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Recherchez et consultez toutes les factures archivées
+              </p>
+              <button
+                onClick={() => setShowInvoiceSearchModal(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg transition-colors flex items-center space-x-2 mx-auto"
+              >
+                <Search className="w-4 h-4" />
+                <span>Rechercher dans les archives</span>
+              </button>
+            </div>
+          )}
+
                   {((activeTab === 'commandes' && getFilteredCommandes().length === 0) ||
                     (activeTab === 'paiements' && getFilteredPaiements().length === 0) ||
                     (activeTab === 'sessions' && getFilteredSessions().length === 0)) && (
@@ -568,7 +697,7 @@ const CaissePage: React.FC = () => {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Client</label>
+                  image.png   <label className="text-sm font-medium text-gray-500">Client</label>
                     <p className="text-gray-900">{selectedCommande.nom_complet}</p>
                   </div>
                   <div>
@@ -680,6 +809,23 @@ const CaissePage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Invoice Modal */}
+      <InvoiceModal
+        isOpen={showInvoiceModal}
+        onClose={() => setShowInvoiceModal(false)}
+        invoiceData={invoiceData}
+      />
+
+      {/* Invoice Search Modal */}
+      <InvoiceSearchModal
+        isOpen={showInvoiceSearchModal}
+        onClose={() => setShowInvoiceSearchModal(false)}
+        onSearch={handleSearchInvoices}
+        onViewInvoice={handleViewArchivedInvoice}
+        searchResults={searchResults}
+        isLoading={isSearching}
+      />
     </div>
   );
 };

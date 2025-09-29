@@ -67,10 +67,25 @@ const ManagerPage: React.FC = () => {
     stockDisponible: 0
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newProductPhoto, setNewProductPhoto] = useState<File | null>(null);
+  const [newProductPreview, setNewProductPreview] = useState<string | null>(null);
+  const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
     loadDashboardData();
+    loadCategories();
   }, [activeTab]);
+
+  const loadCategories = async () => {
+    try {
+      const response = await apiService.getCategories();
+      if (response.success) {
+        setCategories(response.data || []);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des catégories:', error);
+    }
+  };
 
   // Rafraîchissement automatique toutes les 30 secondes
   useEffect(() => {
@@ -86,8 +101,8 @@ const ManagerPage: React.FC = () => {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      // Charger les statistiques du jour
-      const statsResponse = await apiService.getDailyStats();
+      // Charger les statistiques du dashboard manager
+      const statsResponse = await apiService.getManagerDashboard();
       console.log('Réponse stats:', statsResponse);
       
       // Charger les commandes en attente
@@ -114,15 +129,15 @@ const ManagerPage: React.FC = () => {
       }
 
       if (statsResponse.success && statsResponse.data) {
-        const apiData = statsResponse.data;
+        const dashboardData = statsResponse.data;
         setStats({
-          ventesJour: apiData.totalVentes || 0,
-          tablesOccupees: sessionsResponse.success ? sessionsResponse.data?.length || 0 : 0,
-          tablesLibres: 8 - (sessionsResponse.success ? sessionsResponse.data?.length || 0 : 0), // 8 tables total
-          commandesEnCours: commandesResponse.success ? commandesResponse.data?.length || 0 : 0,
-          commandesServies: 0, // À calculer depuis l'historique
-          paiementsEnAttente: paiementsResponse.success ? paiementsResponse.data?.length || 0 : 0,
-          paiementsValides: apiData.totalPaiements || 0
+          ventesJour: dashboardData.ventes?.totalVentes || 0,
+          tablesOccupees: dashboardData.tables?.occupees || 0,
+          tablesLibres: (dashboardData.tables?.total || 0) - (dashboardData.tables?.occupees || 0),
+          commandesEnCours: dashboardData.commandes?.enAttente || 0,
+          commandesServies: dashboardData.commandes?.servies || 0,
+          paiementsEnAttente: dashboardData.paiements?.enAttente || 0,
+          paiementsValides: dashboardData.paiements?.effectues || 0
         });
       }
 
@@ -173,10 +188,12 @@ const ManagerPage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const response = await apiService.createProduct(newProduct);
+      const response = await apiService.createProduct(newProduct, newProductPhoto);
       if (response.success) {
         alert('Produit créé avec succès !');
         setNewProduct({ nomProduit: '', description: '', prixCfa: 0, stockDisponible: 0 });
+        setNewProductPhoto(null);
+        setNewProductPreview(null);
         setShowAddProduct(false);
         await loadDashboardData(); // Recharger les données
       } else {
@@ -190,12 +207,26 @@ const ManagerPage: React.FC = () => {
     }
   };
 
+  const handleNewProductFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setNewProductPhoto(file);
+      const url = URL.createObjectURL(file);
+      setNewProductPreview(url);
+    }
+  };
+
+  const removeNewProductImage = () => {
+    setNewProductPhoto(null);
+    setNewProductPreview(null);
+  };
+
   const handleUpdateProduct = async (product: any) => {
     setEditingProduct(product);
     setShowEditModal(true);
   };
 
-  const handleSaveProduct = async (updatedProduct: any) => {
+  const handleSaveProduct = async (updatedProduct: any, photoFile?: File | null) => {
     setIsSubmitting(true);
     try {
       const response = await apiService.updateProduct(editingProduct.id_produit, {
@@ -204,7 +235,7 @@ const ManagerPage: React.FC = () => {
         prixCfa: updatedProduct.prix_cfa,
         stockDisponible: updatedProduct.stock_disponible,
         actif: updatedProduct.actif
-      });
+      }, photoFile);
 
       if (response.success) {
         // Mettre à jour localement pour un feedback immédiat
@@ -347,9 +378,9 @@ const ManagerPage: React.FC = () => {
                   <div className="flex-shrink-0">
                     <DollarSign className="h-8 w-8 text-green-600" />
                   </div>
-                  <div className="ml-4">
+                  <div className="ml-4 min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-500">Ventes du jour</p>
-                    <p className="text-2xl font-semibold text-gray-900">
+                    <p className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 truncate">
                       {formatCurrency(stats.ventesJour)}
                     </p>
                   </div>
@@ -614,6 +645,23 @@ const ManagerPage: React.FC = () => {
                       placeholder="Ex: 50"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Catégorie
+                    </label>
+                    <select
+                      value={newProduct.idCategorie || ''}
+                      onChange={(e) => setNewProduct({...newProduct, idCategorie: e.target.value ? Number(e.target.value) : undefined})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Sélectionner une catégorie</option>
+                      {categories.map((categorie) => (
+                        <option key={categorie.id_categorie} value={categorie.id_categorie}>
+                          {categorie.icone} {categorie.nom_categorie}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Description *
@@ -626,12 +674,46 @@ const ManagerPage: React.FC = () => {
                       placeholder="Description du produit..."
                     />
                   </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Photo du produit
+                    </label>
+                    <div className="space-y-3">
+                      {newProductPreview && (
+                        <div className="relative">
+                          <img
+                            src={newProductPreview}
+                            alt="Aperçu"
+                            className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                          />
+                          <button
+                            type="button"
+                            onClick={removeNewProductImage}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleNewProductFileChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p className="text-xs text-gray-500">
+                        Formats acceptés: JPG, PNG, GIF. Taille max: 5MB
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 <div className="flex justify-end space-x-3 mt-6">
                   <button
                     onClick={() => {
                       setShowAddProduct(false);
                       setNewProduct({ nomProduit: '', description: '', prixCfa: 0, stockDisponible: 0 });
+                      setNewProductPhoto(null);
+                      setNewProductPreview(null);
                     }}
                     className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
                   >
@@ -652,30 +734,38 @@ const ManagerPage: React.FC = () => {
             <div className="bg-white rounded-lg shadow overflow-hidden">
               {/* Version desktop */}
               <div className="hidden sm:block overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Produit
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Prix
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Stock
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Statut
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {products.map((product) => (
-                      <tr key={product.id_produit} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Produit
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Prix
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Stock
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Statut
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {products.map((product) => (
+                    <tr key={product.id_produit} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center space-x-3">
+                          {product.photo_url && (
+                            <img
+                              src={`http://localhost:3000${product.photo_url}`}
+                              alt={product.nom_produit}
+                              className="w-12 h-12 object-cover rounded-lg border border-gray-300"
+                            />
+                          )}
                           <div>
                             <div className="text-sm font-medium text-gray-900">
                               {product.nom_produit}
@@ -684,47 +774,48 @@ const ManagerPage: React.FC = () => {
                               {product.description}
                             </div>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatCurrency(product.prix_cfa)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium">{product.stock_disponible}</span>
-                            <StockStatus stock={product.stock_disponible} isActive={product.actif} />
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            product.actif 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {product.actif ? 'Actif' : 'Inactif'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                          <button
-                            onClick={() => handleUpdateProduct(product)}
-                            disabled={isSubmitting}
-                            className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
-                            title="Modifier"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteProduct(product)}
-                            disabled={isSubmitting}
-                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                            title="Supprimer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatCurrency(product.prix_cfa)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">{product.stock_disponible}</span>
+                          <StockStatus stock={product.stock_disponible} isActive={product.actif} />
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          product.actif 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {product.actif ? 'Actif' : 'Inactif'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        <button
+                          onClick={() => handleUpdateProduct(product)}
+                          disabled={isSubmitting}
+                          className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
+                          title="Modifier"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProduct(product)}
+                          disabled={isSubmitting}
+                          className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
               </div>
 
               {/* Version mobile */}
@@ -733,13 +824,22 @@ const ManagerPage: React.FC = () => {
                   {products.map((product) => (
                     <div key={product.id_produit} className="bg-gray-50 rounded-lg p-4 space-y-3">
                       <div className="flex justify-between items-start">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-medium text-gray-900 truncate">
-                            {product.nom_produit}
-                          </h3>
-                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                            {product.description}
-                          </p>
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          {product.photo_url && (
+                            <img
+                              src={`http://localhost:3000${product.photo_url}`}
+                              alt={product.nom_produit}
+                              className="w-10 h-10 object-cover rounded-lg border border-gray-300 flex-shrink-0"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-medium text-gray-900 truncate">
+                              {product.nom_produit}
+                            </h3>
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                              {product.description}
+                            </p>
+                          </div>
                         </div>
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ml-2 ${
                           product.actif 
@@ -818,29 +918,6 @@ const ManagerPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  Métriques clés
-                </h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Panier moyen</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {formatCurrency(stats.ventesJour / Math.max(stats.commandesServies, 1))}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Taux de conversion</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {Math.round((stats.paiementsValides / Math.max(stats.commandesEnCours + stats.commandesServies, 1)) * 100)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Temps moyen de service</span>
-                    <span className="text-sm font-medium text-gray-900">15 min</span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         )}

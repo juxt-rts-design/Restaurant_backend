@@ -21,6 +21,7 @@ interface Product {
   id_produit: number;
   nom_produit: string;
   description: string;
+  photo_url?: string;
   prix_cfa: number;
   stock_disponible: number;
   actif: boolean;

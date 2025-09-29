@@ -45,6 +45,25 @@ class Paiement {
     }
   }
 
+  // Récupérer les paiements d'une commande
+  static async getByCommande(idCommande) {
+    try {
+      const [rows] = await pool.execute(
+        'SELECT p.*, c.id_session, s.id_table, s.id_client, cl.nom_complet, t.nom_table ' +
+        'FROM paiements p ' +
+        'JOIN commandes c ON p.id_commande = c.id_commande ' +
+        'JOIN sessions s ON c.id_session = s.id_session ' +
+        'JOIN clients cl ON s.id_client = cl.id_client ' +
+        'JOIN tables t ON s.id_table = t.id_table ' +
+        'WHERE p.id_commande = ?',
+        [idCommande]
+      );
+      return rows;
+    } catch (error) {
+      throw new Error(`Erreur lors de la récupération des paiements de la commande: ${error.message}`);
+    }
+  }
+
   // Récupérer les paiements d'une session
   static async getBySession(idSession) {
     try {
@@ -83,7 +102,7 @@ class Paiement {
     }
   }
 
-  // Valider un paiement
+  // Valider un paiement (validation réelle - paiement effectué)
   static async validate(idPaiement) {
     try {
       await pool.execute(
@@ -115,7 +134,7 @@ class Paiement {
     }
   }
 
-  // Récupérer les paiements en cours
+  // Récupérer les paiements en cours et effectués (pour la caisse)
   static async getPending() {
     try {
       const [rows] = await pool.execute(
@@ -125,11 +144,11 @@ class Paiement {
         'JOIN sessions s ON c.id_session = s.id_session ' +
         'JOIN clients cl ON s.id_client = cl.id_client ' +
         'JOIN tables t ON s.id_table = t.id_table ' +
-        'WHERE p.statut_paiement = "EN_COURS" ORDER BY p.date_paiement ASC'
+        'WHERE p.statut_paiement IN ("EN_COURS", "EFFECTUÉ") ORDER BY p.date_paiement ASC'
       );
       return rows;
     } catch (error) {
-      throw new Error(`Erreur lors de la récupération des paiements en cours: ${error.message}`);
+      throw new Error(`Erreur lors de la récupération des paiements: ${error.message}`);
     }
   }
 
@@ -191,6 +210,19 @@ class Paiement {
       return true;
     } catch (error) {
       throw new Error(`Erreur lors de l'annulation du paiement: ${error.message}`);
+    }
+  }
+
+  // Archiver un paiement effectué (le supprimer de la vue)
+  static async archive(idPaiement) {
+    try {
+      await pool.execute(
+        'UPDATE paiements SET statut_paiement = "ARCHIVÉ" WHERE id_paiement = ?',
+        [idPaiement]
+      );
+      return true;
+    } catch (error) {
+      throw new Error(`Erreur lors de l'archivage du paiement: ${error.message}`);
     }
   }
 }
