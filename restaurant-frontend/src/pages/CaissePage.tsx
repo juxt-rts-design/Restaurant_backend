@@ -39,6 +39,10 @@ const CaissePage: React.FC = () => {
   const [showInvoiceSearchModal, setShowInvoiceSearchModal] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [archivedInvoices, setArchivedInvoices] = useState<any[]>([]);
+  const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
+  const [filteredInvoices, setFilteredInvoices] = useState<any[]>([]);
+  const [archiveSearchQuery, setArchiveSearchQuery] = useState('');
 
   useEffect(() => {
     loadData();
@@ -78,6 +82,28 @@ const CaissePage: React.FC = () => {
           } else {
             console.error('Erreur chargement sessions:', sessionsResponse.error);
             setSessions([]);
+          }
+          break;
+        case 'archives':
+          console.log('🔍 Chargement des factures archivées...');
+          setIsLoadingInvoices(true);
+          try {
+            const invoicesResponse = await apiService.getAllArchivedInvoices();
+            console.log('📄 Réponse factures:', invoicesResponse);
+            if (invoicesResponse.success && invoicesResponse.data) {
+              console.log('✅ Factures chargées:', invoicesResponse.data.length);
+              setArchivedInvoices(invoicesResponse.data);
+              setFilteredInvoices([]); // Réinitialiser les filtres
+            } else {
+              console.error('❌ Erreur chargement factures:', invoicesResponse.error);
+              setArchivedInvoices([]);
+              setFilteredInvoices([]);
+            }
+          } catch (error) {
+            console.error('❌ Erreur lors du chargement des factures:', error);
+            setArchivedInvoices([]);
+          } finally {
+            setIsLoadingInvoices(false);
           }
           break;
       }
@@ -198,6 +224,7 @@ const CaissePage: React.FC = () => {
     setIsProcessing(true);
     try {
       const response = await apiService.generateInvoice(idCommande);
+      
       if (response.success && response.data) {
         setInvoiceData(response.data);
         setShowInvoiceModal(true);
@@ -205,8 +232,8 @@ const CaissePage: React.FC = () => {
         setError(response.error || 'Erreur lors de la génération de la facture');
       }
     } catch (error) {
+      console.error('Erreur lors de la génération de la facture:', error);
       setError('Erreur lors de la génération de la facture');
-      console.error('Erreur:', error);
     } finally {
       setIsProcessing(false);
     }
@@ -232,23 +259,52 @@ const CaissePage: React.FC = () => {
   };
 
   const handleViewArchivedInvoice = async (numeroFacture: string) => {
+    console.log('🔍 handleViewArchivedInvoice appelé avec:', numeroFacture);
     setIsProcessing(true);
     try {
       const response = await apiService.getArchivedInvoice(numeroFacture);
+      console.log('📄 Réponse getArchivedInvoice:', response);
       if (response.success && response.data) {
+        console.log('✅ Données facture reçues:', response.data);
         setInvoiceData(response.data);
         setShowInvoiceModal(true);
         setShowInvoiceSearchModal(false);
+        console.log('✅ Modal facture ouverte');
       } else {
+        console.error('❌ Erreur dans la réponse:', response.error);
         setError(response.error || 'Erreur lors de la récupération de la facture');
       }
     } catch (error) {
+      console.error('❌ Erreur catch:', error);
       setError('Erreur lors de la récupération de la facture');
-      console.error('Erreur:', error);
     } finally {
       setIsProcessing(false);
     }
   };
+
+  // Recherche automatique des factures archivées
+  useEffect(() => {
+    if (!archiveSearchQuery.trim()) {
+      setFilteredInvoices([]);
+      return;
+    }
+    
+    console.log('🔍 Recherche automatique archives:', archiveSearchQuery);
+    
+    const query = archiveSearchQuery.toLowerCase();
+    const filtered = archivedInvoices.filter(invoice => {
+      return (
+        invoice.nom_client?.toLowerCase().includes(query) ||
+        invoice.nom_table?.toLowerCase().includes(query) ||
+        invoice.numero_facture?.toLowerCase().includes(query) ||
+        invoice.montant_total?.toString().includes(query) ||
+        invoice.code_validation?.toLowerCase().includes(query)
+      );
+    });
+    
+    setFilteredInvoices(filtered);
+    console.log('✅ Factures filtrées:', filtered.length);
+  }, [archiveSearchQuery, archivedInvoices]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR').format(price);
@@ -635,30 +691,117 @@ const CaissePage: React.FC = () => {
             </div>
           )}
 
+          {console.log('🔍 ActiveTab:', activeTab, 'Archives condition:', activeTab === 'archives')}
           {activeTab === 'archives' && (
-            <div className="text-center py-12">
-              <div className="text-gray-400 mb-4">
-                <FileText className="w-12 h-12 mx-auto" />
+            <div className="space-y-6">
+              {/* Header avec recherche */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">
+                  Archives des Factures
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Toutes les factures générées et archivées
+                </p>
+                
+                {/* Barre de recherche simple */}
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Rechercher par nom client, table, numéro facture, prix..."
+                    value={archiveSearchQuery}
+                    onChange={(e) => setArchiveSearchQuery(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  />
+                </div>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Archives des Factures
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Recherchez et consultez toutes les factures archivées
-              </p>
-              <button
-                onClick={() => setShowInvoiceSearchModal(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg transition-colors flex items-center space-x-2 mx-auto"
-              >
-                <Search className="w-4 h-4" />
-                <span>Rechercher dans les archives</span>
-              </button>
+
+              {/* Liste des factures */}
+              {console.log('🔍 État Archives - isLoadingInvoices:', isLoadingInvoices, 'archivedInvoices.length:', archivedInvoices.length)}
+              {isLoadingInvoices ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="text-gray-600 mt-2">Chargement des factures...</p>
+                </div>
+              ) : (filteredInvoices.length > 0 || archivedInvoices.length > 0) ? (
+                <div>
+                  <p className="text-sm text-gray-600 mb-4">
+                    📊 {filteredInvoices.length > 0 ? filteredInvoices.length : archivedInvoices.length} factures trouvées
+                    {filteredInvoices.length > 0 && filteredInvoices.length !== archivedInvoices.length && 
+                      ` (filtrées sur ${archivedInvoices.length} total)`
+                    }
+                  </p>
+                  <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                  <ul className="divide-y divide-gray-200">
+                    {(filteredInvoices.length > 0 ? filteredInvoices : archivedInvoices).map((facture) => (
+                      <li key={facture.id_facture} className="px-6 py-4 hover:bg-gray-50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-3">
+                              <FileText className="w-5 h-5 text-gray-400" />
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">
+                                  {facture.numero_facture}
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                  {facture.nom_client} - {facture.nom_table}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <div className="text-right">
+                              <p className="text-sm font-medium text-gray-900">
+                                {formatPrice(facture.montant_total)} FCFA
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {formatDate(facture.date_facture)}
+                              </p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                facture.statut_paiement === 'EFFECTUÉ' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {facture.statut_paiement || 'EN_ATTENTE'}
+                              </span>
+                              <button
+                                onClick={() => handleViewArchivedInvoice(facture.numero_facture)}
+                                className="text-blue-600 hover:text-blue-900 flex items-center space-x-1"
+                              >
+                                <Eye className="w-4 h-4" />
+                                <span>Voir</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="text-gray-400 mb-4">
+                    <FileText className="w-12 h-12 mx-auto" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Aucune facture archivée
+                  </h3>
+                  <p className="text-gray-600">
+                    Aucune facture n'a encore été générée et archivée
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
-                  {((activeTab === 'commandes' && getFilteredCommandes().length === 0) ||
-                    (activeTab === 'paiements' && getFilteredPaiements().length === 0) ||
-                    (activeTab === 'sessions' && getFilteredSessions().length === 0)) && (
+          {((activeTab === 'commandes' && getFilteredCommandes().length === 0) ||
+            (activeTab === 'paiements' && getFilteredPaiements().length === 0) ||
+            (activeTab === 'sessions' && getFilteredSessions().length === 0)) && (
             <div className="text-center py-12">
               <div className="text-gray-400 mb-4">
                 {activeTab === 'commandes' && <ShoppingCart className="w-12 h-12 mx-auto" />}

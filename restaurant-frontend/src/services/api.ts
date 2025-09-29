@@ -11,7 +11,7 @@ import {
   CreatePaymentRequest 
 } from '../types';
 
-const API_BASE_URL = 'http://192.168.1.66:3000';
+const API_BASE_URL = 'http://192.168.1.78:3000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -331,6 +331,22 @@ class ApiService {
       return {
         success: false,
         error: error.response?.data?.message || 'Erreur lors de la récupération de la facture',
+      };
+    }
+  }
+
+  async getAllArchivedInvoices(): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await api.get('/api/caisse/invoices/all');
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors du chargement des factures archivées',
       };
     }
   }

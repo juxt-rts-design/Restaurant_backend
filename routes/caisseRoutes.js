@@ -87,7 +87,12 @@ router.get('/invoices/search',
   CaisseController.rechercherFactures
 );
 
-// Récupérer une facture archivée par numéro
+// Récupérer toutes les factures archivées (doit être avant la route générique)
+router.get('/invoices/all', 
+  CaisseController.getAllFacturesArchivees
+);
+
+// Récupérer une facture archivée par numéro (doit être après les routes spécifiques)
 router.get('/invoices/:numeroFacture', 
   CaisseController.getFactureArchivee
 );

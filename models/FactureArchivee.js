@@ -71,6 +71,27 @@ class FactureArchivee {
     }
   }
 
+  // Récupérer toutes les factures archivées
+  static async getAll() {
+    try {
+      const [rows] = await pool.execute(
+        'SELECT * FROM factures_archivees ORDER BY date_facture DESC'
+      );
+      
+      // Parser les données JSON pour chaque facture
+      return rows.map(facture => {
+        return {
+          ...facture,
+          produits: JSON.parse(facture.produits_json),
+          totaux: JSON.parse(facture.totaux_json),
+          restaurant: JSON.parse(facture.restaurant_info)
+        };
+      });
+    } catch (error) {
+      throw new Error(`Erreur lors de la récupération des factures archivées: ${error.message}`);
+    }
+  }
+
   // Rechercher des factures avec filtres
   static async rechercher(filtres = {}) {
     try {

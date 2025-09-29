@@ -111,9 +111,9 @@ const startServer = async () => {
       console.log(`📍 Port: ${config.port}`);
       console.log(`🌍 Environnement: ${config.nodeEnv}`);
       console.log(`🔗 URL Local: http://localhost:${config.port}`);
-      console.log(`🔗 URL Réseau: http://192.168.1.66:${config.port}`);
-      console.log('📱 QR Codes: http://192.168.1.66:' + config.port + '/table/[QR_CODE]');
-      console.log('📊 API Documentation: http://192.168.1.66:' + config.port + '/api');
+      console.log(`🔗 URL Réseau: http://192.168.1.78:${config.port}`);
+      console.log('📱 QR Codes: http://192.168.1.78:' + config.port + '/table/[QR_CODE]');
+      console.log('📊 API Documentation: http://192.168.1.78:' + config.port + '/api');
     });
   } catch (error) {
     console.error('❌ Erreur lors du démarrage du serveur:', error);

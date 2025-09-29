@@ -194,7 +194,7 @@ class CaisseController {
       // Générer automatiquement une facture après validation
       let factureGeneree = null;
       try {
-        factureGeneree = await this._generateInvoiceInternal(paiement.id_commande);
+        factureGeneree = await CaisseController._generateInvoiceInternal(paiement.id_commande);
         if (factureGeneree) {
           console.log(`✅ Facture générée automatiquement: ${factureGeneree.numeroFacture}`);
         }
@@ -620,13 +620,55 @@ class CaisseController {
         });
       }
 
+      // Transformer les données au format attendu par le frontend
+      const factureFormatted = {
+        numeroFacture: facture.numero_facture,
+        dateFacture: facture.date_facture,
+        dateCommande: facture.date_commande,
+        datePaiement: facture.date_paiement,
+        nomClient: facture.nom_client,
+        nomTable: facture.nom_table,
+        codeValidation: facture.code_validation,
+        methodePaiement: facture.methode_paiement,
+        statutPaiement: facture.statut_paiement,
+        montantTotal: parseFloat(facture.montant_total),
+        restaurant: facture.restaurant,
+        produits: facture.produits,
+        totaux: facture.totaux,
+        paiement: {
+          methode: facture.methode_paiement,
+          statut: facture.statut_paiement,
+          codeValidation: facture.code_validation,
+          datePaiement: facture.date_paiement
+        }
+      };
+
       res.json({
         success: true,
-        data: facture,
+        data: factureFormatted,
         message: 'Facture récupérée avec succès'
       });
     } catch (error) {
       console.error('Erreur lors de la récupération de la facture:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur interne du serveur'
+      });
+    }
+  }
+
+  // Récupérer toutes les factures archivées
+  static async getAllFacturesArchivees(req, res) {
+    try {
+      const factures = await FactureArchivee.getAll();
+      
+      res.json({
+        success: true,
+        data: factures,
+        message: 'Factures archivées récupérées avec succès'
+      });
+    } catch (error) {
+      console.error('Erreur lors de la récupération des factures archivées:', error);
       res.status(500).json({
         success: false,
         message: 'Erreur interne du serveur'
