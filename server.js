@@ -12,6 +12,8 @@ const {
 } = require('./middleware/security');
 
 // Import des routes
+const authRoutes = require('./routes/authRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const clientRoutes = require('./routes/clientRoutes');
 const caisseRoutes = require('./routes/caisseRoutes');
 const managerRoutes = require('./routes/managerRoutes');
@@ -71,6 +73,8 @@ app.get('/health', (req, res) => {
 });
 
 // Routes API
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/client', clientRoutes);
 app.use('/api/caisse', caisseRoutes);
 app.use('/api/manager', managerRoutes);

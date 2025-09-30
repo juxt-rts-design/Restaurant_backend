@@ -398,17 +398,7 @@ const CaissePage: React.FC = () => {
               >
                 <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
-              {activeTab === 'sessions' && (
-                <button
-                  onClick={() => {
-                    console.log('Sessions actuelles:', sessions);
-                    console.log('Nombre de sessions:', sessions.length);
-                  }}
-                  className="px-2 sm:px-3 py-1 bg-blue-500 text-white rounded text-xs sm:text-sm hidden sm:block"
-                >
-                  Debug Sessions
-                </button>
-              )}
+
             </div>
           </div>
         </div>

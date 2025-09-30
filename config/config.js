@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const config = {
   // Configuration du serveur
-  port: process.env.PORT || 3000,
+  port: process.env.PORT || 3001,
   nodeEnv: process.env.NODE_ENV || 'development',
   
   // Configuration JWT
@@ -19,9 +19,11 @@ const config = {
   corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [
     'http://localhost:3000', 
     'http://localhost:3001', 
+    'http://localhost:3002',
     'http://localhost:5173',
-    'http://192.168.1.78:3000',
-    'http://192.168.1.78:5173'
+    'http://192.168.1.66:3000',
+    'http://192.168.1.66:5173',
+    'http://192.168.1.65:3002'
   ],
   
   // Configuration des limites de taux

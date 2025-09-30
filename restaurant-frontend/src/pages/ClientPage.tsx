@@ -57,6 +57,8 @@ const ClientPage: React.FC = () => {
   const [showNameModal, setShowNameModal] = useState(false);
   const [tempCustomerName, setTempCustomerName] = useState('');
   const [addingToCart, setAddingToCart] = useState<Set<number>>(new Set());
+  const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
+  const [paymentCode, setPaymentCode] = useState<string>('');
 
   // Fonction pour afficher les notifications
   const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
@@ -269,7 +271,7 @@ const ClientPage: React.FC = () => {
               date_ouverture: existingSessionResponse.data.session.dateOuverture
             };
             console.log('Session existante récupérée:', sessionData);
-            setCurrentSession(sessionData);
+          setCurrentSession(sessionData);
           } else {
             showNotification('error', 'Impossible de récupérer la session existante');
             return;
@@ -348,6 +350,12 @@ const ClientPage: React.FC = () => {
   const handlePayment = async () => {
     if (!selectedPaymentMethod || !currentSession) return;
     
+    // Si c'est un paiement à la caisse, ne rien faire (déjà géré par handleCashPaymentSelection)
+    if (selectedPaymentMethod === 'A_LA_CAISSE') {
+      return;
+    }
+    
+    // Pour les autres méthodes de paiement, procéder normalement
     setIsProcessing(true);
     try {
       const response = await apiService.createPayment(currentSession.id_session, {
@@ -370,6 +378,51 @@ const ClientPage: React.FC = () => {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Fonction pour gérer la sélection du paiement à la caisse
+  const handleCashPaymentSelection = async () => {
+    if (!currentSession) return;
+    
+    setIsProcessing(true);
+    try {
+      const response = await apiService.createPayment(currentSession.id_session, {
+        methodePaiement: 'A_LA_CAISSE'
+      });
+      
+      if (response.success && response.data?.paiement?.codeValidation) {
+        // Utiliser le code généré par le backend (identique à celui de la caisse)
+        setPaymentCode(response.data.paiement.codeValidation);
+        setShowCashPaymentModal(true);
+        showNotification('success', 'Code de paiement généré ! Présentez ce code à la caisse.');
+      } else {
+        console.error('Réponse API:', response);
+        showNotification('error', 'Erreur lors de la génération du code: ' + (response.error || 'Code non trouvé dans la réponse'));
+      }
+    } catch (error) {
+      console.error('Erreur lors du paiement:', error);
+      showNotification('error', 'Erreur lors de la génération du code');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Fonction pour confirmer le paiement à la caisse (le paiement est déjà créé)
+  const confirmCashPayment = () => {
+    // Sortir immédiatement de la session
+    clearCart();
+    setShowPayment(false);
+    setShowPaymentOptions(false);
+    setSelectedPaymentMethod(null);
+    setShowCashPaymentModal(false);
+    navigate('/');
+  };
+
+  // Fonction pour annuler le paiement à la caisse
+  const cancelCashPayment = () => {
+    setShowCashPaymentModal(false);
+    setPaymentCode('');
+    setSelectedPaymentMethod(null);
   };
 
   // Fonctions pour le modal de nom
@@ -472,13 +525,13 @@ const ClientPage: React.FC = () => {
               </button>
               <div className="min-w-0 flex-1">
                 <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
-                  Menu du Restaurant
-                </h1>
-                {qrCode && (
+                Menu du Restaurant
+              </h1>
+              {qrCode && (
                   <span className="text-xs sm:text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded hidden sm:inline-block">
-                    Table: {qrCode.substring(0, 8)}
-                  </span>
-                )}
+                  Table: {qrCode.substring(0, 8)}
+                </span>
+              )}
               </div>
             </div>
             
@@ -706,7 +759,13 @@ const ClientPage: React.FC = () => {
                 ].map((method) => (
                   <button
                     key={method.id}
-                    onClick={() => setSelectedPaymentMethod(method.id as any)}
+                    onClick={() => {
+                      setSelectedPaymentMethod(method.id as any);
+                      // Si c'est "À la caisse", créer le paiement immédiatement
+                      if (method.id === 'A_LA_CAISSE') {
+                        handleCashPaymentSelection();
+                      }
+                    }}
                     className={`w-full p-3 border rounded-lg text-left flex items-center space-x-3 transition-colors ${
                       selectedPaymentMethod === method.id
                         ? 'border-blue-500 bg-blue-50'
@@ -717,24 +776,26 @@ const ClientPage: React.FC = () => {
                     <span className="font-medium">{method.label}</span>
                   </button>
                 ))}
-                  </div>
-                  
-                  <div className="flex space-x-3">
-                    <button
+              </div>
+              
+              <div className="flex space-x-3">
+                <button
                       onClick={() => {
                         setShowPaymentOptions(false);
                         setSelectedPaymentMethod(null);
                       }}
-                      className="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
+                  className="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
                       Retour
-                    </button>
-                    <button
-                      onClick={handlePayment}
-                      disabled={!selectedPaymentMethod || isProcessing}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white py-2 px-4 rounded-lg transition-colors"
-                    >
-                      {isProcessing ? 'Traitement...' : 'Confirmer le paiement'}
+                </button>
+                <button
+                  onClick={handlePayment}
+                      disabled={!selectedPaymentMethod || isProcessing || selectedPaymentMethod === 'A_LA_CAISSE'}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white py-2 px-4 rounded-lg transition-colors"
+                >
+                      {isProcessing ? 'Traitement...' : 
+                       selectedPaymentMethod === 'A_LA_CAISSE' ? 'Code généré' : 
+                       'Confirmer le paiement'}
                     </button>
                   </div>
                 </div>
@@ -849,6 +910,81 @@ const ClientPage: React.FC = () => {
                 >
                   Confirmer
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de paiement à la caisse */}
+      {showCashPaymentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="text-center">
+              {/* Icône */}
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-orange-100 mb-4">
+                <span className="text-2xl">🏪</span>
+              </div>
+              
+              {/* Titre */}
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Paiement à la caisse
+              </h3>
+              
+              {/* Description */}
+              <p className="text-sm text-gray-600 mb-6">
+                {isProcessing ? 'Génération du code de paiement...' : 'Présentez ce code à la caisse pour finaliser votre paiement'}
+              </p>
+              
+              {/* Code de paiement */}
+              <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4 mb-6">
+                <p className="text-xs text-gray-500 mb-1">Code de paiement</p>
+                {isProcessing ? (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+                  </div>
+                ) : (
+                  <p className="text-2xl font-bold text-gray-900 tracking-wider">
+                    {paymentCode}
+                  </p>
+                )}
+              </div>
+              
+              {/* Informations supplémentaires */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
+                <p className="text-xs text-blue-800">
+                  💡 <strong>Astuce :</strong> Montrez ce code au caissier pour identifier rapidement votre commande
+                </p>
+              </div>
+              
+              {/* Boutons */}
+              <div className="flex space-x-3">
+                <button
+                  onClick={cancelCashPayment}
+                  disabled={isProcessing}
+                  className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 transition-colors"
+                >
+                  Annuler
+                </button>
+                {!isProcessing && paymentCode ? (
+                  <button
+                    onClick={() => {
+                      clearCart();
+                      setShowPayment(false);
+                      setShowPaymentOptions(false);
+                      setSelectedPaymentMethod(null);
+                      setShowCashPaymentModal(false);
+                      navigate('/');
+                    }}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors"
+                  >
+                    OK
+                  </button>
+                ) : (
+                  <div className="flex-1 py-2 px-4 bg-gray-300 text-gray-500 rounded-lg text-center">
+                    {isProcessing ? 'Génération...' : 'En attente...'}
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -62,7 +62,31 @@ const requireRole = (roles) => {
   };
 };
 
+// Middleware d'authentification générique (pour admin et employés)
+const auth = (req, res, next) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token manquant'
+      });
+    }
+
+    const decoded = jwt.verify(token, config.jwtSecret);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: 'Token invalide'
+    });
+  }
+};
+
 module.exports = {
+  auth,
   authenticateEmployee,
   optionalAuth,
   requireRole

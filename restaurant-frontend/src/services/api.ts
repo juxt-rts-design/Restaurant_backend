@@ -11,7 +11,7 @@ import {
   CreatePaymentRequest 
 } from '../types';
 
-const API_BASE_URL = 'http://192.168.1.78:3000';
+const API_BASE_URL = 'http://localhost:3001';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -196,15 +196,17 @@ class ApiService {
   }
 
   // Créer un paiement
-  async createPayment(sessionId: number, request: CreatePaymentRequest): Promise<ApiResponse<void>> {
+  async createPayment(sessionId: number, request: CreatePaymentRequest): Promise<ApiResponse<any>> {
     try {
-      await api.post(`/api/client/session/${sessionId}/payment`, request, {
+      const response = await api.post(`/api/client/session/${sessionId}/payment`, request, {
         headers: {
           'Content-Type': 'application/json'
         }
       });
       return {
-        success: true,
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
       };
     } catch (error: any) {
       return {
@@ -681,6 +683,224 @@ class ApiService {
       return {
         success: false,
         message: error.response?.data?.message || 'Erreur lors de la mise à jour du statut'
+      };
+    }
+  }
+
+  // Méthodes d'authentification
+  async login(email: string, password: string): Promise<ApiResponse<{ user: any; token: string }>> {
+    try {
+      const response = await api.post('/api/auth/login', { email, password });
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la connexion',
+      };
+    }
+  }
+
+  async verifyToken(token: string): Promise<ApiResponse<any>> {
+    try {
+      const response = await api.get('/api/auth/verify', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Token invalide',
+      };
+    }
+  }
+
+  // Méthodes Admin
+  async getAdminDashboard(): Promise<ApiResponse<any>> {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await api.get('/api/admin/dashboard', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la récupération du dashboard',
+      };
+    }
+  }
+
+  async getAllRestaurants(): Promise<ApiResponse<any>> {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await api.get('/api/admin/restaurants', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la récupération des restaurants',
+      };
+    }
+  }
+
+  async createRestaurant(restaurantData: any): Promise<ApiResponse<any>> {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await api.post('/api/admin/restaurants', restaurantData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la création du restaurant',
+      };
+    }
+  }
+
+  async updateRestaurant(id: number, restaurantData: any): Promise<ApiResponse<any>> {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await api.put(`/api/admin/restaurants/${id}`, restaurantData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la mise à jour du restaurant',
+      };
+    }
+  }
+
+  async toggleRestaurantStatus(id: number, statut: string): Promise<ApiResponse<any>> {
+    try {
+      const token = localStorage.getItem('authToken');
+      console.log('🔑 Token utilisé:', token ? 'Présent' : 'Absent');
+      console.log('📡 Requête:', { id, statut });
+      
+      const response = await api.patch(`/api/admin/restaurants/${id}/status`, { statut }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('✅ Réponse reçue:', response.data);
+      return {
+        success: response.data.success,
+        data: response.data.data || response.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      console.error('❌ Erreur dans toggleRestaurantStatus:', error);
+      console.error('❌ Détails erreur:', error.response?.data);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors du changement de statut',
+      };
+    }
+  }
+
+  async getAllUsers(): Promise<ApiResponse<any>> {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await api.get('/api/admin/users', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la récupération des utilisateurs',
+      };
+    }
+  }
+
+  async createUser(userData: any): Promise<ApiResponse<any>> {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await api.post('/api/admin/users', userData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la création de l\'utilisateur',
+      };
+    }
+  }
+
+  async updateUser(id: number, userData: any): Promise<ApiResponse<any>> {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await api.put(`/api/admin/users/${id}`, userData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la mise à jour de l\'utilisateur',
       };
     }
   }
