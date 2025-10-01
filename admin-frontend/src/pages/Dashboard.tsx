@@ -6,15 +6,26 @@ import {
   DollarSign,
   TrendingUp,
   TrendingDown,
-  Activity
+  Activity,
+  Eye,
+  CheckCircle,
+  AlertTriangle,
+  BarChart3,
+  Plus,
+  RefreshCw
 } from 'lucide-react';
 import adminApiService from '../services/adminApi';
-import { RestaurantStats, TopRestaurant } from '../types/admin';
+import { RestaurantStats, TopRestaurant, Restaurant } from '../types/admin';
+import { useNotification } from '../components/NotificationSystem';
+import RestaurantDetailsModal from '../components/RestaurantDetailsModal';
 
 const Dashboard: React.FC = () => {
+  const { showNotification } = useNotification();
   const [stats, setStats] = useState<RestaurantStats | null>(null);
   const [topRestaurants, setTopRestaurants] = useState<TopRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedRestaurantId, setSelectedRestaurantId] = useState<number | null>(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -52,7 +63,11 @@ const Dashboard: React.FC = () => {
         break;
       case 'Factures Total':
         // Afficher les détails des factures
-        alert(`Total de ${stats?.factures?.total_factures} factures pour ${(stats?.factures?.ca_total_fcfa || 0).toLocaleString()} FCFA`);
+        showNotification({
+          type: 'info',
+          title: 'Détails des Factures',
+          message: `Total de ${stats?.factures?.total_factures} factures pour ${(stats?.factures?.ca_total_fcfa || 0).toLocaleString()} FCFA`
+        });
         break;
       case 'Utilisateurs':
         // Rediriger vers la page utilisateurs
@@ -60,60 +75,112 @@ const Dashboard: React.FC = () => {
         break;
       case 'CA Total':
         // Afficher les détails du CA
-        alert(`Chiffre d'affaires total: ${(stats?.factures?.ca_total_fcfa || 0).toLocaleString()} FCFA\nCA 30j: ${(stats?.factures?.ca_30j_fcfa || 0).toLocaleString()} FCFA`);
+        showNotification({
+          type: 'info',
+          title: 'Détails du Chiffre d\'Affaires',
+          message: `Chiffre d'affaires total: ${(stats?.factures?.ca_total_fcfa || 0).toLocaleString()} FCFA\nCA 30j: ${(stats?.factures?.ca_30j_fcfa || 0).toLocaleString()} FCFA`
+        });
         break;
       case 'Produits':
         // Afficher les détails des produits
-        alert(`Total: ${stats?.produits?.total_produits} produits\nActifs: ${stats?.produits?.produits_actifs}\nEn rupture: ${stats?.produits?.produits_rupture}`);
+        showNotification({
+          type: 'info',
+          title: 'Détails des Produits',
+          message: `Total: ${stats?.produits?.total_produits} produits\nActifs: ${stats?.produits?.produits_actifs}\nEn rupture: ${stats?.produits?.produits_rupture}`
+        });
         break;
       case 'Restaurants Suspendus':
         // Afficher les restaurants suspendus
-        alert(`Attention: ${stats?.restaurants?.restaurants_suspendus} restaurants sont suspendus et nécessitent une action !`);
+        showNotification({
+          type: 'warning',
+          title: 'Attention',
+          message: `${stats?.restaurants?.restaurants_suspendus} restaurants sont suspendus et nécessitent une action !`
+        });
         break;
     }
   };
 
   const handleRestaurantAction = async (restaurantId: number, action: string) => {
     try {
-      console.log(`Action ${action} sur le restaurant ${restaurantId}`);
-      
-      if (action === 'Activer') {
-        // Appeler l'API pour activer le restaurant
-        const response = await adminApiService.toggleRestaurantStatus(restaurantId, 'ACTIF');
-        if (response.success) {
-          alert(`✅ Restaurant ${restaurantId} activé avec succès !`);
-          // Recharger les données
-          await loadDashboardData();
+      if (action === 'Activer' || action === 'Suspendre') {
+        const response = await adminApiService.toggleRestaurantStatus(restaurantId);
+        if (response.success && response.data) {
+          const newStatus = response.data.statut;
+          showNotification({
+            type: 'success',
+            title: 'Succès',
+            message: `Restaurant ${newStatus.toLowerCase()} avec succès !`
+          });
+          
+          // Mettre à jour l'état local directement
+          setTopRestaurants(prev => prev.map(restaurant => 
+            restaurant.id === restaurantId 
+              ? { ...restaurant, statut: newStatus }
+              : restaurant
+          ));
+          
+          // Mettre à jour les stats si nécessaire
+          if (stats) {
+            setStats(prev => prev ? {
+              ...prev,
+              restaurants: {
+                ...prev.restaurants,
+                restaurants_actifs: newStatus === 'ACTIF' 
+                  ? prev.restaurants.restaurants_actifs + 1 
+                  : prev.restaurants.restaurants_actifs - 1,
+                restaurants_suspendus: newStatus === 'SUSPENDU' 
+                  ? prev.restaurants.restaurants_suspendus + 1 
+                  : prev.restaurants.restaurants_suspendus - 1
+              }
+            } : null);
+          }
         } else {
-          alert(`❌ Erreur: ${response.error}`);
-        }
-      } else if (action === 'Suspendre') {
-        // Appeler l'API pour suspendre le restaurant
-        const response = await adminApiService.toggleRestaurantStatus(restaurantId, 'SUSPENDU');
-        if (response.success) {
-          alert(`⚠️ Restaurant ${restaurantId} suspendu avec succès !`);
-          // Recharger les données
-          await loadDashboardData();
-        } else {
-          alert(`❌ Erreur: ${response.error}`);
+          showNotification({
+            type: 'error',
+            title: 'Erreur',
+            message: response.error || 'Erreur lors du changement de statut'
+          });
         }
       } else if (action === 'Voir détails') {
-        // Rediriger vers la page de détails du restaurant
-        window.location.href = `/restaurants/${restaurantId}`;
+        setSelectedRestaurantId(restaurantId);
+        setShowDetailsModal(true);
       } else if (action === 'Nouveau Restaurant') {
-        // Rediriger vers la page de création
-        window.location.href = '/restaurants/new';
+        // Rediriger vers la page restaurants pour créer un nouveau restaurant
+        window.location.href = '/restaurants';
       } else if (action === 'Synchroniser données') {
-        // Recharger toutes les données
+        showNotification({
+          type: 'info',
+          title: 'Synchronisation',
+          message: 'Synchronisation des données en cours...'
+        });
         await loadDashboardData();
-        alert('🔄 Données synchronisées avec succès !');
-      } else {
-        alert(`Action "${action}" effectuée sur le restaurant ${restaurantId}`);
+        showNotification({
+          type: 'success',
+          title: 'Succès',
+          message: 'Données synchronisées avec succès !'
+        });
       }
     } catch (error) {
       console.error('Erreur lors de l\'action:', error);
-      alert('❌ Erreur lors de l\'exécution de l\'action');
+      showNotification({
+        type: 'error',
+        title: 'Erreur',
+        message: 'Erreur lors de l\'exécution de l\'action'
+      });
     }
+  };
+
+  const handleCloseDetailsModal = () => {
+    setShowDetailsModal(false);
+    setSelectedRestaurantId(null);
+  };
+
+  const handleRestaurantUpdated = (updatedRestaurant: Restaurant) => {
+    setTopRestaurants(prev => prev.map(restaurant => 
+      restaurant.id === updatedRestaurant.id 
+        ? { ...restaurant, statut: updatedRestaurant.statut }
+        : restaurant
+    ));
   };
 
   if (loading) {
@@ -428,7 +495,8 @@ const Dashboard: React.FC = () => {
                           e.currentTarget.style.background = '#eff6ff';
                         }}
                       >
-                        👁️ Détails
+                        <Eye style={{ width: '14px', height: '14px', marginRight: '4px' }} />
+                        Détails
                       </button>
                       {restaurant.statut === 'SUSPENDU' ? (
                         <button
@@ -454,7 +522,8 @@ const Dashboard: React.FC = () => {
                             e.currentTarget.style.background = '#ecfdf5';
                           }}
                         >
-                          ✅ Activer
+                          <CheckCircle style={{ width: '14px', height: '14px', marginRight: '4px' }} />
+                          Activer
                         </button>
                       ) : restaurant.statut === 'ACTIF' ? (
                         <button
@@ -480,7 +549,8 @@ const Dashboard: React.FC = () => {
                             e.currentTarget.style.background = '#fef2f2';
                           }}
                         >
-                          ⚠️ Suspendre
+                          <AlertTriangle style={{ width: '14px', height: '14px', marginRight: '4px' }} />
+                          Suspendre
                         </button>
                       ) : null}
                     </div>
@@ -547,8 +617,8 @@ const Dashboard: React.FC = () => {
                   e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
                 }}
               >
-                <Building2 style={{ width: '20px', height: '20px', marginRight: '12px' }} />
-                🏪 Nouveau Restaurant
+                <Plus style={{ width: '20px', height: '20px', marginRight: '12px' }} />
+                Nouveau Restaurant
               </button>
               
               <button 
@@ -611,8 +681,8 @@ const Dashboard: React.FC = () => {
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                <Activity style={{ width: '20px', height: '20px', marginRight: '12px' }} />
-                📊 Voir Analytics
+                <BarChart3 style={{ width: '20px', height: '20px', marginRight: '12px' }} />
+                Voir Analytics
               </button>
 
               <button 
@@ -643,12 +713,21 @@ const Dashboard: React.FC = () => {
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                🔄 Synchroniser Données
+                <RefreshCw style={{ width: '20px', height: '20px', marginRight: '12px' }} />
+                Synchroniser Données
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Modal de détails du restaurant */}
+      <RestaurantDetailsModal
+        restaurantId={selectedRestaurantId}
+        isOpen={showDetailsModal}
+        onClose={handleCloseDetailsModal}
+        onRestaurantUpdated={handleRestaurantUpdated}
+      />
     </div>
   );
 };

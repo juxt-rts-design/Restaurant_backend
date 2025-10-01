@@ -26,8 +26,12 @@ import {
 import adminApiService from '../services/adminApi';
 import { User } from '../types/admin';
 import CreateUserModal from '../components/CreateUserModal';
+import UserDetailsModal from '../components/UserDetailsModal';
+import EditUserModal from '../components/EditUserModal';
+import { useNotification } from '../components/NotificationSystem';
 
 const Users: React.FC = () => {
+  const { showNotification } = useNotification();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,6 +39,10 @@ const Users: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [restaurantFilter, setRestaurantFilter] = useState('ALL');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   useEffect(() => {
     loadUsers();
@@ -58,39 +66,106 @@ const Users: React.FC = () => {
     try {
       if (action === 'Activer') {
         const response = await adminApiService.updateUser(userId, { statut: 'ACTIF' });
-        if (response.success) {
-          alert(`✅ Utilisateur activé avec succès !`);
-          await loadUsers();
+        if (response.success && response.data) {
+          showNotification({
+            type: 'success',
+            title: 'Succès',
+            message: 'Utilisateur activé avec succès !'
+          });
+          
+          // Mettre à jour l'état local directement
+          setUsers(prev => prev.map(user => 
+            user.id_utilisateur === userId 
+              ? { ...user, statut: 'ACTIF' }
+              : user
+          ));
         } else {
-          alert(`❌ Erreur: ${response.error}`);
+          showNotification({
+            type: 'error',
+            title: 'Erreur',
+            message: response.error || 'Erreur lors de l\'activation'
+          });
         }
       } else if (action === 'Désactiver') {
         const response = await adminApiService.updateUser(userId, { statut: 'INACTIF' });
-        if (response.success) {
-          alert(`⚠️ Utilisateur désactivé avec succès !`);
-          await loadUsers();
+        if (response.success && response.data) {
+          showNotification({
+            type: 'success',
+            title: 'Succès',
+            message: 'Utilisateur désactivé avec succès !'
+          });
+          
+          // Mettre à jour l'état local directement
+          setUsers(prev => prev.map(user => 
+            user.id_utilisateur === userId 
+              ? { ...user, statut: 'INACTIF' }
+              : user
+          ));
         } else {
-          alert(`❌ Erreur: ${response.error}`);
+          showNotification({
+            type: 'error',
+            title: 'Erreur',
+            message: response.error || 'Erreur lors de la désactivation'
+          });
         }
       } else if (action === 'Voir détails') {
-        window.location.href = `/users/${userId}`;
+        setSelectedUserId(userId);
+        setShowDetailsModal(true);
       } else if (action === 'Éditer') {
-        window.location.href = `/users/${userId}/edit`;
+        const user = users.find(u => u.id_utilisateur === userId);
+        if (user) {
+          setSelectedUser(user);
+          setShowEditModal(true);
+        }
       } else if (action === 'Supprimer') {
         if (confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
           const response = await adminApiService.deleteUser(userId);
           if (response.success) {
-            alert(`🗑️ Utilisateur supprimé avec succès !`);
-            await loadUsers();
+            showNotification({
+              type: 'success',
+              title: 'Succès',
+              message: 'Utilisateur supprimé avec succès !'
+            });
+            
+            // Mettre à jour l'état local directement
+            setUsers(prev => prev.filter(user => user.id_utilisateur !== userId));
           } else {
-            alert(`❌ Erreur: ${response.error}`);
+            showNotification({
+              type: 'error',
+              title: 'Erreur',
+              message: response.error || 'Erreur lors de la suppression'
+            });
           }
         }
       }
     } catch (error) {
       console.error('Erreur lors de l\'action:', error);
-      alert('❌ Erreur lors de l\'exécution de l\'action');
+      showNotification({
+        type: 'error',
+        title: 'Erreur',
+        message: 'Erreur lors de l\'exécution de l\'action'
+      });
     }
+  };
+
+  const handleCloseDetailsModal = () => {
+    setShowDetailsModal(false);
+    setSelectedUserId(null);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setSelectedUser(null);
+  };
+
+  const handleUserUpdated = (updatedUser: User) => {
+    setUsers(prev => prev.map(user => 
+      user.id_utilisateur === updatedUser.id_utilisateur ? updatedUser : user
+    ));
+  };
+
+  const handleUserCreated = (newUser: User) => {
+    setUsers(prev => [newUser, ...prev]);
   };
 
   const getRoleIcon = (role: string) => {
@@ -751,7 +826,23 @@ const Users: React.FC = () => {
       <CreateUserModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onSuccess={loadUsers}
+        onSuccess={handleUserCreated}
+      />
+
+      {/* Modal de détails */}
+      <UserDetailsModal
+        userId={selectedUserId}
+        isOpen={showDetailsModal}
+        onClose={handleCloseDetailsModal}
+        onUserUpdated={handleUserUpdated}
+      />
+
+      {/* Modal d'édition */}
+      <EditUserModal
+        user={selectedUser}
+        isOpen={showEditModal}
+        onClose={handleCloseEditModal}
+        onUserUpdated={handleUserUpdated}
       />
     </div>
   );

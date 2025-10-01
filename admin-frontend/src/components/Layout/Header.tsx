@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAdmin } from '../../contexts/AdminContext';
-import { Bell, User } from 'lucide-react';
+import { Bell, User as UserIcon } from 'lucide-react';
 
 const Header: React.FC = () => {
   const { state } = useAdmin();
@@ -114,7 +114,7 @@ const Header: React.FC = () => {
               justifyContent: 'center',
               boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
             }}>
-              <User style={{ width: '20px', height: '20px', color: 'white' }} />
+              <UserIcon style={{ width: '20px', height: '20px', color: 'white' }} />
             </div>
           </div>
         </div>

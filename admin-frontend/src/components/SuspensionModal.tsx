@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, AlertTriangle, Clock, User, MessageSquare } from 'lucide-react';
+import { X, AlertTriangle, Clock, User as UserIcon, MessageSquare } from 'lucide-react';
 import { Restaurant } from '../types/admin';
 
 interface SuspensionModalProps {

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { X, Users, Mail, Phone, Building2, Shield, Lock, User } from 'lucide-react';
+import { X, Users, Mail, Phone, Building2, Shield, Lock, User as UserIcon } from 'lucide-react';
 import adminApiService from '../services/adminApi';
-import { CreateUserRequest, Restaurant } from '../types/admin';
+import { CreateUserRequest, Restaurant, User } from '../types/admin';
+import { useNotification } from './NotificationSystem';
 
 interface CreateUserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (user: User) => void;
 }
 
 const CreateUserModal: React.FC<CreateUserModalProps> = ({
@@ -14,11 +15,11 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
   onClose,
   onSuccess
 }) => {
+  const { showNotification } = useNotification();
   const [formData, setFormData] = useState<CreateUserRequest>({
     nom_utilisateur: '',
     email: '',
     mot_de_passe: '',
-    telephone: '',
     role: 'CAISSIER',
     restaurant_id: null,
     statut: 'ACTIF'
@@ -79,9 +80,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
       newErrors.mot_de_passe = 'Le mot de passe doit contenir au moins 6 caractères';
     }
 
-    if (!formData.telephone.trim()) {
-      newErrors.telephone = 'Le téléphone est requis';
-    }
 
     if (!formData.role) {
       newErrors.role = 'Le rôle est requis';
@@ -106,26 +104,37 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
       setLoading(true);
       const response = await adminApiService.createUser(formData);
       
-      if (response.success) {
-        alert('✅ Utilisateur créé avec succès !');
-        onSuccess();
+      if (response.success && response.data) {
+        showNotification({
+          type: 'success',
+          title: 'Succès',
+          message: 'Utilisateur créé avec succès !'
+        });
+        onSuccess(response.data);
         onClose();
         // Reset form
         setFormData({
           nom_utilisateur: '',
           email: '',
           mot_de_passe: '',
-          telephone: '',
           role: 'CAISSIER',
           restaurant_id: null,
           statut: 'ACTIF'
         });
       } else {
-        alert(`❌ Erreur: ${response.error}`);
+        showNotification({
+          type: 'error',
+          title: 'Erreur',
+          message: response.error || 'Erreur lors de la création de l\'utilisateur'
+        });
       }
     } catch (error) {
       console.error('Erreur lors de la création:', error);
-      alert('❌ Erreur lors de la création de l\'utilisateur');
+      showNotification({
+        type: 'error',
+        title: 'Erreur',
+        message: 'Erreur lors de la création de l\'utilisateur'
+      });
     } finally {
       setLoading(false);
     }
@@ -246,7 +255,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 Nom d'utilisateur *
               </label>
               <div style={{ position: 'relative' }}>
-                <User style={{
+                <UserIcon style={{
                   position: 'absolute',
                   left: '12px',
                   top: '50%',
@@ -399,60 +408,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
               )}
             </div>
 
-            {/* Téléphone */}
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                Téléphone *
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Phone style={{
-                  position: 'absolute',
-                  left: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: '20px',
-                  height: '20px',
-                  color: '#9ca3af'
-                }} />
-                <input
-                  type="tel"
-                  name="telephone"
-                  value={formData.telephone}
-                  onChange={handleInputChange}
-                  placeholder="+241 01 23 45 67"
-                  style={{
-                    width: '100%',
-                    padding: '12px 12px 12px 44px',
-                    fontSize: '16px',
-                    border: `1px solid ${errors.telephone ? '#ef4444' : '#d1d5db'}`,
-                    borderRadius: '12px',
-                    background: '#f9fafb',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.background = 'white';
-                    e.target.style.borderColor = '#3b82f6';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.background = '#f9fafb';
-                    e.target.style.borderColor = errors.telephone ? '#ef4444' : '#d1d5db';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-              {errors.telephone && (
-                <p style={{ color: '#ef4444', fontSize: '12px', margin: '4px 0 0 0' }}>
-                  {errors.telephone}
-                </p>
-              )}
-            </div>
 
             {/* Rôle */}
             <div>

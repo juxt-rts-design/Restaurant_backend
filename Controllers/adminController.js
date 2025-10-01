@@ -830,7 +830,7 @@ const updateUser = async (req, res) => {
     }
 
     // Construire la requête de mise à jour
-    const allowedFields = ['nom_utilisateur', 'email', 'role', 'statut'];
+    const allowedFields = ['nom_utilisateur', 'email', 'role', 'statut', 'id_restaurant'];
     const updateFields = [];
     const updateValues = [];
 

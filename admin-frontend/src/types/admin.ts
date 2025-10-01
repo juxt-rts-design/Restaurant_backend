@@ -98,7 +98,6 @@ export interface CreateUserRequest {
   nom_utilisateur: string;
   email: string;
   mot_de_passe: string;
-  telephone?: string;
   role: 'ADMIN' | 'MANAGER' | 'CAISSIER' | 'CUISINIER';
   restaurant_id?: number | null;
   statut?: 'ACTIF' | 'INACTIF' | 'SUSPENDU';
@@ -107,7 +106,6 @@ export interface CreateUserRequest {
 export interface UpdateUserRequest {
   nom_utilisateur?: string;
   email?: string;
-  telephone?: string;
   role?: 'ADMIN' | 'MANAGER' | 'CAISSIER' | 'CUISINIER';
   statut?: 'ACTIF' | 'INACTIF' | 'SUSPENDU';
   restaurant_id?: number | null;
