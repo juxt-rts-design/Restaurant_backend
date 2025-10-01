@@ -148,15 +148,15 @@ const verifyAdminToken = async (req, res) => {
 const getDashboardStats = async (req, res) => {
   try {
     // Statistiques des restaurants (vraies données)
-    const [restaurantStats] = await pool.execute(`
-      SELECT 
-        COUNT(*) as total_restaurants,
+      const [restaurantStats] = await pool.execute(`
+        SELECT 
+          COUNT(*) as total_restaurants,
         SUM(CASE WHEN statut = 'ACTIF' THEN 1 ELSE 0 END) as restaurants_actifs,
         SUM(CASE WHEN statut = 'SUSPENDU' THEN 1 ELSE 0 END) as restaurants_suspendus,
         SUM(CASE WHEN plan = 'PREMIUM' THEN 1 ELSE 0 END) as restaurants_premium,
         SUM(CASE WHEN plan = 'ENTERPRISE' THEN 1 ELSE 0 END) as restaurants_enterprise
-      FROM restaurants
-    `);
+        FROM restaurants
+      `);
 
     // Statistiques des factures (vraies données FCFA)
     const [factureStats] = await pool.execute(`
@@ -171,20 +171,20 @@ const getDashboardStats = async (req, res) => {
     `);
 
     // Statistiques des utilisateurs (vraies données)
-    const [userStats] = await pool.execute(`
-      SELECT 
-        COUNT(*) as total_utilisateurs,
+      const [userStats] = await pool.execute(`
+        SELECT 
+          COUNT(*) as total_utilisateurs,
         SUM(CASE WHEN statut = 'ACTIF' THEN 1 ELSE 0 END) as utilisateurs_actifs,
         SUM(CASE WHEN role = 'MANAGER' THEN 1 ELSE 0 END) as managers,
         SUM(CASE WHEN role = 'CAISSIER' THEN 1 ELSE 0 END) as caissiers,
         SUM(CASE WHEN role = 'CUISINIER' THEN 1 ELSE 0 END) as cuisiniers,
         SUM(CASE WHEN role = 'ADMIN' THEN 1 ELSE 0 END) as admins
-      FROM utilisateurs
-    `);
+        FROM utilisateurs
+      `);
 
     // Statistiques des produits (vraies données)
     const [productStats] = await pool.execute(`
-      SELECT 
+        SELECT 
         COUNT(*) as total_produits,
         SUM(CASE WHEN actif = 1 THEN 1 ELSE 0 END) as produits_actifs,
         SUM(CASE WHEN stock_disponible = 0 THEN 1 ELSE 0 END) as produits_rupture
@@ -218,31 +218,31 @@ const getDashboardStats = async (req, res) => {
 const getTopRestaurants = async (req, res) => {
   try {
     const [restaurants] = await pool.execute(`
-      SELECT 
-        r.id,
-        r.nom,
-        r.plan,
+        SELECT 
+          r.id,
+          r.nom,
+          r.plan,
         r.statut,
         COUNT(DISTINCT u.id_utilisateur) as nb_utilisateurs,
         COUNT(DISTINCT f.id_facture) as nb_factures,
         COALESCE(SUM(f.montant_total), 0) as ca_total_fcfa,
         COALESCE(SUM(CASE WHEN DATE(f.date_facture) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN f.montant_total ELSE 0 END), 0) as ca_30j_fcfa
-      FROM restaurants r
+        FROM restaurants r
       LEFT JOIN utilisateurs u ON r.id = u.restaurant_id AND u.statut = 'ACTIF'
       LEFT JOIN factures_archivees f ON r.id = f.restaurant_id
       GROUP BY r.id, r.nom, r.plan, r.statut
       ORDER BY ca_total_fcfa DESC
-      LIMIT 10
-    `);
+        LIMIT 10
+      `);
 
     res.json({
-      success: true,
+        success: true,
       data: restaurants
-    });
+      });
 
-  } catch (error) {
+    } catch (error) {
     console.error('Erreur lors du chargement des top restaurants:', error);
-    res.status(500).json({
+      res.status(500).json({
       success: false,
       error: 'Erreur lors du chargement des top restaurants'
     });
@@ -308,10 +308,10 @@ const updateRestaurantStatus = async (req, res) => {
  * Récupérer tous les restaurants
  */
 const getAllRestaurants = async (req, res) => {
-  try {
-    const [restaurants] = await pool.execute(`
-      SELECT 
-        r.*,
+    try {
+      const [restaurants] = await pool.execute(`
+        SELECT 
+          r.*,
         COUNT(DISTINCT u.id_utilisateur) as nb_utilisateurs,
         COUNT(DISTINCT c.id_commande) as nb_commandes_30j,
         COALESCE(SUM(CASE WHEN DATE(c.date_commande) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 
@@ -319,23 +319,23 @@ const getAllRestaurants = async (req, res) => {
            JOIN produits p ON cp.id_produit = p.id_produit 
            WHERE cp.id_commande = c.id_commande) 
         ELSE 0 END), 0) as ca_30j
-      FROM restaurants r
+        FROM restaurants r
       LEFT JOIN utilisateurs u ON r.id = u.restaurant_id AND u.statut = 'ACTIF'
       LEFT JOIN sessions s ON r.id = s.restaurant_id
       LEFT JOIN commandes c ON s.id_session = c.id_session AND DATE(c.date_commande) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-      GROUP BY r.id
-      ORDER BY r.date_creation DESC
-    `);
+        GROUP BY r.id
+        ORDER BY r.date_creation DESC
+      `);
 
     res.json({
-      success: true,
-      data: restaurants
-    });
+        success: true,
+        data: restaurants
+      });
 
-  } catch (error) {
-    console.error('Erreur lors du chargement des restaurants:', error);
-    res.status(500).json({
-      success: false,
+    } catch (error) {
+      console.error('Erreur lors du chargement des restaurants:', error);
+      res.status(500).json({
+        success: false,
       error: 'Erreur lors du chargement des restaurants'
     });
   }
@@ -403,13 +403,13 @@ const createRestaurant = async (req, res) => {
 
     // Vérifier que le slug n'existe pas déjà
     const [existingRestaurants] = await pool.execute(
-      'SELECT id FROM restaurants WHERE slug = ?',
-      [slug]
-    );
+        'SELECT id FROM restaurants WHERE slug = ?',
+        [slug]
+      );
 
     if (existingRestaurants.length > 0) {
-      return res.status(400).json({
-        success: false,
+        return res.status(400).json({
+          success: false,
         error: 'Ce slug est déjà utilisé'
       });
     }
@@ -432,16 +432,16 @@ const createRestaurant = async (req, res) => {
       [result.insertId]
     );
 
-    res.status(201).json({
-      success: true,
+      res.status(201).json({
+        success: true,
       data: newRestaurant[0],
-      message: 'Restaurant créé avec succès'
-    });
+        message: 'Restaurant créé avec succès'
+      });
 
-  } catch (error) {
-    console.error('Erreur lors de la création du restaurant:', error);
-    res.status(500).json({
-      success: false,
+    } catch (error) {
+      console.error('Erreur lors de la création du restaurant:', error);
+      res.status(500).json({
+        success: false,
       error: 'Erreur lors de la création du restaurant'
     });
   }
@@ -521,15 +521,15 @@ const updateRestaurant = async (req, res) => {
     );
 
     res.json({
-      success: true,
+        success: true,
       data: updatedRestaurant[0],
-      message: 'Restaurant mis à jour avec succès'
-    });
+        message: 'Restaurant mis à jour avec succès'
+      });
 
-  } catch (error) {
-    console.error('Erreur lors de la mise à jour du restaurant:', error);
-    res.status(500).json({
-      success: false,
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du restaurant:', error);
+      res.status(500).json({
+        success: false,
       error: 'Erreur lors de la mise à jour du restaurant'
     });
   }
@@ -541,18 +541,10 @@ const updateRestaurant = async (req, res) => {
 const toggleRestaurantStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { statut } = req.body;
 
-    if (!['ACTIF', 'INACTIF', 'SUSPENDU'].includes(statut)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Statut invalide'
-      });
-    }
-
-    // Vérifier que le restaurant existe
+    // Vérifier que le restaurant existe et récupérer son statut actuel
     const [restaurants] = await pool.execute(
-      'SELECT id FROM restaurants WHERE id = ?',
+      'SELECT id, statut FROM restaurants WHERE id = ?',
       [id]
     );
 
@@ -563,14 +555,18 @@ const toggleRestaurantStatus = async (req, res) => {
       });
     }
 
+    // Basculer le statut : ACTIF -> SUSPENDU, SUSPENDU -> ACTIF
+    const currentStatus = restaurants[0].statut;
+    const newStatus = currentStatus === 'ACTIF' ? 'SUSPENDU' : 'ACTIF';
+
     // Mettre à jour le statut
     await pool.execute(
       'UPDATE restaurants SET statut = ?, date_mise_a_jour = NOW() WHERE id = ?',
-      [statut, id]
+      [newStatus, id]
     );
 
     // Si suspension, désactiver tous les utilisateurs du restaurant
-    if (statut === 'SUSPENDU') {
+    if (newStatus === 'SUSPENDU') {
       await pool.execute(
         'UPDATE utilisateurs SET statut = "INACTIF" WHERE restaurant_id = ?',
         [id]
@@ -586,7 +582,7 @@ const toggleRestaurantStatus = async (req, res) => {
     res.json({
       success: true,
       data: updatedRestaurant[0],
-      message: `Restaurant ${statut.toLowerCase()} avec succès`
+      message: `Restaurant ${newStatus.toLowerCase()} avec succès`
     });
 
   } catch (error) {
@@ -618,44 +614,28 @@ const deleteRestaurant = async (req, res) => {
       });
     }
 
-    // Commencer une transaction
-    await pool.execute('START TRANSACTION');
-
-    try {
-      // Supprimer les utilisateurs du restaurant
-      await pool.execute('DELETE FROM utilisateurs WHERE restaurant_id = ?', [id]);
-      
-      // Supprimer les commandes du restaurant
-      await pool.execute('DELETE FROM commandes WHERE restaurant_id = ?', [id]);
-      
-      // Supprimer les produits du restaurant
-      await pool.execute('DELETE FROM produits WHERE restaurant_id = ?', [id]);
-      
-      // Supprimer les catégories du restaurant
-      await pool.execute('DELETE FROM categories WHERE restaurant_id = ?', [id]);
-      
-      // Supprimer le restaurant
-      await pool.execute('DELETE FROM restaurants WHERE id = ?', [id]);
-
-      // Valider la transaction
-      await pool.execute('COMMIT');
-
+    // Supprimer seulement le restaurant (approche minimale)
+    const [result] = await pool.execute('DELETE FROM restaurants WHERE id = ?', [id]);
+    
+    if (result.affectedRows > 0) {
       res.json({
         success: true,
         message: 'Restaurant supprimé avec succès'
       });
-
-    } catch (error) {
-      // Annuler la transaction en cas d'erreur
-      await pool.execute('ROLLBACK');
-      throw error;
+    } else {
+      res.status(404).json({
+        success: false,
+        error: 'Restaurant non trouvé'
+      });
     }
 
   } catch (error) {
     console.error('Erreur lors de la suppression du restaurant:', error);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({
       success: false,
-      error: 'Erreur lors de la suppression du restaurant'
+      error: 'Erreur lors de la suppression du restaurant',
+      details: error.message
     });
   }
 };
@@ -700,15 +680,15 @@ const checkSlugAvailability = async (req, res) => {
  * Récupérer tous les utilisateurs
  */
 const getAllUsers = async (req, res) => {
-  try {
-    const [users] = await pool.execute(`
-      SELECT 
-        u.*,
+    try {
+      const [users] = await pool.execute(`
+        SELECT 
+          u.*,
         r.nom as restaurant_nom
-      FROM utilisateurs u
+        FROM utilisateurs u
       LEFT JOIN restaurants r ON u.restaurant_id = r.id
-      ORDER BY u.date_creation DESC
-    `);
+        ORDER BY u.date_creation DESC
+      `);
 
     res.json({
       success: true,
@@ -737,14 +717,14 @@ const getUsersByRestaurant = async (req, res) => {
     );
 
     res.json({
-      success: true,
-      data: users
-    });
+        success: true,
+        data: users
+      });
 
-  } catch (error) {
-    console.error('Erreur lors du chargement des utilisateurs:', error);
-    res.status(500).json({
-      success: false,
+    } catch (error) {
+      console.error('Erreur lors du chargement des utilisateurs:', error);
+      res.status(500).json({
+        success: false,
       error: 'Erreur lors du chargement des utilisateurs'
     });
   }
@@ -787,18 +767,18 @@ const createUser = async (req, res) => {
     // Vérifier que l'email n'existe pas déjà
     const [existingUsers] = await pool.execute(
       'SELECT id_utilisateur FROM utilisateurs WHERE email = ?',
-      [email]
-    );
+        [email]
+      );
 
     if (existingUsers.length > 0) {
-      return res.status(400).json({
-        success: false,
+        return res.status(400).json({
+          success: false,
         error: 'Cet email est déjà utilisé'
-      });
-    }
+        });
+      }
 
-    // Hasher le mot de passe
-    const hashedPassword = await bcrypt.hash(mot_de_passe, 10);
+      // Hasher le mot de passe
+      const hashedPassword = await bcrypt.hash(mot_de_passe, 10);
 
     // Créer l'utilisateur
     const [result] = await pool.execute(`
@@ -813,16 +793,16 @@ const createUser = async (req, res) => {
       FROM utilisateurs WHERE id_utilisateur = ?
     `, [result.insertId]);
 
-    res.status(201).json({
-      success: true,
+      res.status(201).json({
+        success: true,
       data: newUser[0],
-      message: 'Utilisateur créé avec succès'
-    });
+        message: 'Utilisateur créé avec succès'
+      });
 
-  } catch (error) {
-    console.error('Erreur lors de la création de l\'utilisateur:', error);
-    res.status(500).json({
-      success: false,
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'utilisateur:', error);
+      res.status(500).json({
+        success: false,
       error: 'Erreur lors de la création de l\'utilisateur'
     });
   }
@@ -882,15 +862,15 @@ const updateUser = async (req, res) => {
     `, [id]);
 
     res.json({
-      success: true,
+        success: true,
       data: updatedUser[0],
-      message: 'Utilisateur mis à jour avec succès'
-    });
+        message: 'Utilisateur mis à jour avec succès'
+      });
 
-  } catch (error) {
-    console.error('Erreur lors de la mise à jour de l\'utilisateur:', error);
-    res.status(500).json({
-      success: false,
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de l\'utilisateur:', error);
+      res.status(500).json({
+        success: false,
       error: 'Erreur lors de la mise à jour de l\'utilisateur'
     });
   }
@@ -1179,3 +1159,159 @@ module.exports = {
   getBackups,
   runMaintenance
 };
+
+// ===== ANALYSES =====
+const getAnalyticsData = async (req, res) => {
+  try {
+    const { period = '30j', restaurant_id = 'all' } = req.query;
+    
+    // Calculer les dates selon la période
+    let dateFilter = '';
+    let dateParams = [];
+    
+    switch (period) {
+      case '7j':
+        dateFilter = 'AND date_commande >= DATE_SUB(NOW(), INTERVAL 7 DAY)';
+        break;
+      case '30j':
+        dateFilter = 'AND date_commande >= DATE_SUB(NOW(), INTERVAL 30 DAY)';
+        break;
+      case '90j':
+        dateFilter = 'AND date_commande >= DATE_SUB(NOW(), INTERVAL 90 DAY)';
+        break;
+      case '1a':
+        dateFilter = 'AND date_commande >= DATE_SUB(NOW(), INTERVAL 1 YEAR)';
+        break;
+    }
+
+    // Filtre restaurant
+    let restaurantFilter = '';
+    if (restaurant_id !== 'all') {
+      restaurantFilter = 'AND restaurant_id = ?';
+      dateParams.push(restaurant_id);
+    }
+
+    // 1. REVENUS
+    const [revenueData] = await pool.execute(`
+      SELECT 
+        COALESCE(SUM(montant_total), 0) as total_revenue,
+        COALESCE(SUM(CASE WHEN date_facture >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN montant_total ELSE 0 END), 0) as monthly_revenue,
+        COALESCE(SUM(CASE WHEN date_facture >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN montant_total ELSE 0 END), 0) as weekly_revenue,
+        COALESCE(SUM(CASE WHEN date_facture >= DATE_SUB(NOW(), INTERVAL 1 DAY) THEN montant_total ELSE 0 END), 0) as daily_revenue
+      FROM factures_archivees 
+      WHERE 1=1 ${restaurantFilter}
+    `, dateParams);
+
+    // 2. COMMANDES
+    const [ordersData] = await pool.execute(`
+      SELECT 
+        COUNT(*) as total_orders,
+        SUM(CASE WHEN statut_commande = 'SERVI' THEN 1 ELSE 0 END) as completed_orders,
+        SUM(CASE WHEN statut_commande = '' OR statut_commande IS NULL THEN 1 ELSE 0 END) as pending_orders,
+        SUM(CASE WHEN statut_commande = 'ANNULÉ' THEN 1 ELSE 0 END) as cancelled_orders
+      FROM commandes 
+      WHERE 1=1 ${restaurantFilter} ${dateFilter}
+    `, dateParams);
+
+    // 3. UTILISATEURS
+    const [usersData] = await pool.execute(`
+      SELECT 
+        COUNT(*) as total_users,
+        SUM(CASE WHEN statut = 'ACTIF' THEN 1 ELSE 0 END) as active_users,
+        SUM(CASE WHEN date_creation >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as new_users
+      FROM utilisateurs 
+      WHERE 1=1 ${restaurantFilter}
+    `, dateParams);
+
+    // 4. RESTAURANTS
+    const [restaurantsData] = await pool.execute(`
+      SELECT 
+        COUNT(*) as total_restaurants,
+        SUM(CASE WHEN statut = 'ACTIF' THEN 1 ELSE 0 END) as active_restaurants,
+        SUM(CASE WHEN plan IN ('PREMIUM', 'ENTERPRISE') THEN 1 ELSE 0 END) as premium_restaurants
+      FROM restaurants
+    `);
+
+    // Calculer les croissances (comparaison avec la période précédente)
+    const [prevRevenueData] = await pool.execute(`
+      SELECT 
+        COALESCE(SUM(montant_total), 0) as prev_total_revenue
+      FROM factures_archivees 
+      WHERE 1=1 ${restaurantFilter}
+      AND date_facture < DATE_SUB(NOW(), INTERVAL ${period === '7j' ? 7 : period === '30j' ? 30 : period === '90j' ? 90 : 365} DAY)
+      AND date_facture >= DATE_SUB(NOW(), INTERVAL ${period === '7j' ? 14 : period === '30j' ? 60 : period === '90j' ? 180 : 730} DAY)
+    `, dateParams);
+
+    const [prevOrdersData] = await pool.execute(`
+      SELECT 
+        COUNT(*) as prev_total_orders
+      FROM commandes 
+      WHERE 1=1 ${restaurantFilter}
+      AND date_commande < DATE_SUB(NOW(), INTERVAL ${period === '7j' ? 7 : period === '30j' ? 30 : period === '90j' ? 90 : 365} DAY)
+      AND date_commande >= DATE_SUB(NOW(), INTERVAL ${period === '7j' ? 14 : period === '30j' ? 60 : period === '90j' ? 180 : 730} DAY)
+    `, dateParams);
+
+    // Calculer les pourcentages de croissance
+    const revenueGrowth = prevRevenueData[0].prev_total_revenue > 0 
+      ? ((revenueData[0].total_revenue - prevRevenueData[0].prev_total_revenue) / prevRevenueData[0].prev_total_revenue) * 100
+      : 0;
+
+    const ordersGrowth = prevOrdersData[0].prev_total_orders > 0 
+      ? ((ordersData[0].total_orders - prevOrdersData[0].prev_total_orders) / prevOrdersData[0].prev_total_orders) * 100
+      : 0;
+
+    const usersGrowth = usersData[0].total_users > 0 
+      ? (usersData[0].new_users / usersData[0].total_users) * 100
+      : 0;
+
+    const restaurantsGrowth = restaurantsData[0].total_restaurants > 0 
+      ? (restaurantsData[0].active_restaurants / restaurantsData[0].total_restaurants) * 100
+      : 0;
+
+    const analyticsData = {
+      revenue: {
+        total: parseFloat(revenueData[0].total_revenue) || 0,
+        monthly: parseFloat(revenueData[0].monthly_revenue) || 0,
+        weekly: parseFloat(revenueData[0].weekly_revenue) || 0,
+        daily: parseFloat(revenueData[0].daily_revenue) || 0,
+        growth: Math.round(revenueGrowth * 100) / 100
+      },
+      orders: {
+        total: parseInt(ordersData[0].total_orders) || 0,
+        completed: parseInt(ordersData[0].completed_orders) || 0,
+        pending: parseInt(ordersData[0].pending_orders) || 0,
+        cancelled: parseInt(ordersData[0].cancelled_orders) || 0,
+        growth: Math.round(ordersGrowth * 100) / 100
+      },
+      users: {
+        total: parseInt(usersData[0].total_users) || 0,
+        active: parseInt(usersData[0].active_users) || 0,
+        new: parseInt(usersData[0].new_users) || 0,
+        growth: Math.round(usersGrowth * 100) / 100
+      },
+      restaurants: {
+        total: parseInt(restaurantsData[0].total_restaurants) || 0,
+        active: parseInt(restaurantsData[0].active_restaurants) || 0,
+        premium: parseInt(restaurantsData[0].premium_restaurants) || 0,
+        growth: Math.round(restaurantsGrowth * 100) / 100
+      }
+    };
+
+    res.json({
+      success: true,
+      data: analyticsData,
+      period,
+      restaurant_id
+    });
+
+  } catch (error) {
+    console.error('Erreur lors de la récupération des analyses:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la récupération des données d\'analyses'
+    });
+  }
+};
+
+// Export de la fonction getAnalyticsData
+module.exports.getAnalyticsData = getAnalyticsData;

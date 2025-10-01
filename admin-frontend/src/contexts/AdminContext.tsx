@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { User, Restaurant } from '../types/admin';
-import { adminApiService } from '../services/adminApi';
+import adminApiService from '../services/adminApi';
 import toast from 'react-hot-toast';
 
 interface AdminState {
@@ -222,8 +222,11 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     toggleRestaurantStatus,
   };
 
+  console.log('🔍 AdminProvider: Rendu du Provider avec value:', value);
+
   return (
     <AdminContext.Provider value={value}>
+      {console.log('🔍 AdminProvider: Rendu des children')}
       {children}
     </AdminContext.Provider>
   );

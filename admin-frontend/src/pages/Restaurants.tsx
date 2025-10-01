@@ -19,17 +19,25 @@ import {
   DollarSign,
   TrendingUp
 } from 'lucide-react';
-import { adminApiService } from '../services/adminApi';
+import adminApiService from '../services/adminApi';
 import { Restaurant } from '../types/admin';
 import CreateRestaurantModal from '../components/CreateRestaurantModal';
+import RestaurantDetailsModal from '../components/RestaurantDetailsModal';
+import EditRestaurantModal from '../components/EditRestaurantModal';
+import { useNotification } from '../components/NotificationSystem';
 
 const Restaurants: React.FC = () => {
+  const { showNotification } = useNotification();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [planFilter, setPlanFilter] = useState('ALL');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedRestaurantId, setSelectedRestaurantId] = useState<number | null>(null);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
 
   useEffect(() => {
     loadRestaurants();
@@ -51,40 +59,75 @@ const Restaurants: React.FC = () => {
 
   const handleRestaurantAction = async (restaurantId: number, action: string) => {
     try {
-      if (action === 'Activer') {
-        const response = await adminApiService.toggleRestaurantStatus(restaurantId, 'ACTIF');
-        if (response.success) {
-          alert(`✅ Restaurant activé avec succès !`);
-          await loadRestaurants();
+      if (action === 'Activer' || action === 'Suspendre') {
+        const response = await adminApiService.toggleRestaurantStatus(restaurantId);
+        if (response.success && response.data) {
+          const newStatus = response.data.statut;
+          showNotification({
+            type: 'success',
+            title: 'Succès',
+            message: `Restaurant ${newStatus.toLowerCase()} avec succès !`
+          });
+          
+          // Mettre à jour la liste des restaurants avec les nouvelles données
+          setRestaurants(prev => {
+            const updated = prev.map(restaurant => {
+              if (restaurant.id === restaurantId) {
+                // Fusionner les données existantes avec les nouvelles données
+                const updatedRestaurant = {
+                  ...restaurant,
+                  ...response.data,
+                  statut: newStatus,
+                  date_mise_a_jour: response.data.date_mise_a_jour || new Date().toISOString()
+                };
+                return updatedRestaurant;
+              }
+              return restaurant;
+            });
+            return updated;
+          });
         } else {
-          alert(`❌ Erreur: ${response.error}`);
-        }
-      } else if (action === 'Suspendre') {
-        const response = await adminApiService.toggleRestaurantStatus(restaurantId, 'SUSPENDU');
-        if (response.success) {
-          alert(`⚠️ Restaurant suspendu avec succès !`);
-          await loadRestaurants();
-        } else {
-          alert(`❌ Erreur: ${response.error}`);
+          showNotification({
+            type: 'error',
+            title: 'Erreur',
+            message: response.error || 'Erreur lors du changement de statut'
+          });
         }
       } else if (action === 'Voir détails') {
-        window.location.href = `/restaurants/${restaurantId}`;
+        setSelectedRestaurantId(restaurantId);
+        setShowDetailsModal(true);
       } else if (action === 'Éditer') {
-        window.location.href = `/restaurants/${restaurantId}/edit`;
+        const restaurant = restaurants.find(r => r.id === restaurantId);
+        if (restaurant) {
+          setSelectedRestaurant(restaurant);
+          setShowEditModal(true);
+        }
       } else if (action === 'Supprimer') {
         if (confirm('Êtes-vous sûr de vouloir supprimer ce restaurant ?')) {
           const response = await adminApiService.deleteRestaurant(restaurantId);
           if (response.success) {
-            alert(`🗑️ Restaurant supprimé avec succès !`);
+            showNotification({
+              type: 'success',
+              title: 'Succès',
+              message: 'Restaurant supprimé avec succès !'
+            });
             await loadRestaurants();
           } else {
-            alert(`❌ Erreur: ${response.error}`);
+            showNotification({
+              type: 'error',
+              title: 'Erreur',
+              message: response.error || 'Erreur lors de la suppression'
+            });
           }
         }
       }
     } catch (error) {
       console.error('Erreur lors de l\'action:', error);
-      alert('❌ Erreur lors de l\'exécution de l\'action');
+      showNotification({
+        type: 'error',
+        title: 'Erreur',
+        message: 'Erreur lors de l\'exécution de l\'action'
+      });
     }
   };
 
@@ -125,6 +168,24 @@ const Restaurants: React.FC = () => {
       default:
         return '#6b7280';
     }
+  };
+
+  const handleCloseDetailsModal = () => {
+    setShowDetailsModal(false);
+    setSelectedRestaurantId(null);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setSelectedRestaurant(null);
+  };
+
+  const handleRestaurantUpdated = (updatedRestaurant: Restaurant) => {
+    setRestaurants(prev => 
+      prev.map(restaurant => 
+        restaurant.id === updatedRestaurant.id ? updatedRestaurant : restaurant
+      )
+    );
   };
 
   const filteredRestaurants = restaurants.filter(restaurant => {
@@ -699,6 +760,22 @@ const Restaurants: React.FC = () => {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onSuccess={loadRestaurants}
+      />
+
+      {/* Modal de détails */}
+      <RestaurantDetailsModal
+        restaurantId={selectedRestaurantId}
+        isOpen={showDetailsModal}
+        onClose={handleCloseDetailsModal}
+        onRestaurantUpdated={handleRestaurantUpdated}
+      />
+
+      {/* Modal d'édition */}
+      <EditRestaurantModal
+        restaurant={selectedRestaurant}
+        isOpen={showEditModal}
+        onClose={handleCloseEditModal}
+        onRestaurantUpdated={handleRestaurantUpdated}
       />
     </div>
   );

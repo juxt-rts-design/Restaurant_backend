@@ -23,7 +23,7 @@ import {
   Calendar,
   MapPin
 } from 'lucide-react';
-import { adminApiService } from '../services/adminApi';
+import adminApiService from '../services/adminApi';
 import { User } from '../types/admin';
 import CreateUserModal from '../components/CreateUserModal';
 

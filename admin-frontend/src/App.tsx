@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AdminProvider } from './contexts/AdminContext';
+import { NotificationProvider } from './components/NotificationSystem';
 import Layout from './components/Layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Restaurants from './pages/Restaurants';
@@ -12,10 +13,14 @@ import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
+  console.log('🔍 App: Composant App rendu');
+  
   return (
     <AdminProvider>
-      <Router>
+      <NotificationProvider>
+        <Router>
         <div className="App">
+          {console.log('🔍 App: Rendu du composant App')}
           <Toaster 
             position="top-right"
             toastOptions={{
@@ -63,7 +68,8 @@ function App() {
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
-      </Router>
+        </Router>
+      </NotificationProvider>
     </AdminProvider>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Users, Mail, Phone, Building2, Shield, Lock, User } from 'lucide-react';
-import { adminApiService } from '../services/adminApi';
+import adminApiService from '../services/adminApi';
 import { CreateUserRequest, Restaurant } from '../types/admin';
 
 interface CreateUserModalProps {

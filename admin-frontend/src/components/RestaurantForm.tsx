@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Building2, Globe, Phone, Mail, MapPin, Palette } from 'lucide-react';
 import { Restaurant, CreateRestaurantRequest } from '../types/admin';
-import { adminApiService } from '../services/adminApi';
+import adminApiService from '../services/adminApi';
 
 interface RestaurantFormProps {
   restaurant?: Restaurant | null;

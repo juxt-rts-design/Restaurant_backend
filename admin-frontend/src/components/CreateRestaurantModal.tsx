@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { X, Building2, Mail, Phone, MapPin, Globe, CreditCard } from 'lucide-react';
-import { adminApiService } from '../services/adminApi';
+import adminApiService from '../services/adminApi';
 import { CreateRestaurantRequest } from '../types/admin';
+import { useNotification } from './NotificationSystem';
 
 interface CreateRestaurantModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
   onClose,
   onSuccess
 }) => {
+  const { showNotification } = useNotification();
   const [formData, setFormData] = useState<CreateRestaurantRequest>({
     nom: '',
     email: '',
@@ -72,6 +74,28 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  const generateSlug = (nom: string, ville: string) => {
+    const baseSlug = nom
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
+      .replace(/[^a-z0-9\s-]/g, '') // Garder seulement lettres, chiffres, espaces et tirets
+      .replace(/\s+/g, '-') // Remplacer espaces par tirets
+      .replace(/-+/g, '-') // Supprimer tirets multiples
+      .trim();
+    
+    const villeSlug = ville
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+    
+    return `${baseSlug}-${villeSlug}`;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -81,10 +105,25 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
 
     try {
       setLoading(true);
-      const response = await adminApiService.createRestaurant(formData);
+      
+      // Générer le slug automatiquement
+      const slug = generateSlug(formData.nom, formData.ville || 'libreville');
+      
+      const restaurantData = {
+        ...formData,
+        slug,
+        devise: 'XOF', // Devise par défaut pour le Gabon
+        fuseau_horaire: 'Africa/Libreville' // Fuseau horaire du Gabon
+      };
+      
+      const response = await adminApiService.createRestaurant(restaurantData);
       
       if (response.success) {
-        alert('✅ Restaurant créé avec succès !');
+        showNotification({
+          type: 'success',
+          title: 'Succès',
+          message: 'Restaurant créé avec succès !'
+        });
         onSuccess();
         onClose();
         // Reset form
@@ -99,11 +138,19 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
           statut: 'ACTIF'
         });
       } else {
-        alert(`❌ Erreur: ${response.error}`);
+        showNotification({
+          type: 'error',
+          title: 'Erreur',
+          message: response.error || 'Erreur lors de la création du restaurant'
+        });
       }
     } catch (error) {
       console.error('Erreur lors de la création:', error);
-      alert('❌ Erreur lors de la création du restaurant');
+      showNotification({
+        type: 'error',
+        title: 'Erreur',
+        message: 'Erreur lors de la création du restaurant'
+      });
     } finally {
       setLoading(false);
     }

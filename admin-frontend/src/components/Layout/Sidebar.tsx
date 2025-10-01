@@ -17,7 +17,7 @@ const Sidebar: React.FC = () => {
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Restaurants', href: '/restaurants', icon: Building2 },
     { name: 'Utilisateurs', href: '/users', icon: Users },
-    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+    { name: 'Analyses', href: '/analytics', icon: BarChart3 },
     { name: 'Paramètres', href: '/settings', icon: Settings },
   ];
 

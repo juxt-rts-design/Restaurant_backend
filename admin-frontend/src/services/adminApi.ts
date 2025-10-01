@@ -13,14 +13,12 @@ import {
   RestaurantAnalytics
 } from '../types/admin';
 
-const API_BASE_URL = 'http://localhost:3001';
-
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: '/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
-  },
+  }
 });
 
 // Intercepteur pour ajouter le token d'authentification
@@ -49,7 +47,7 @@ class AdminApiService {
   // ===== AUTHENTIFICATION =====
   async login(email: string, password: string): Promise<ApiResponse<{ user: User; token: string }>> {
     try {
-      const response = await api.post('/api/admin/auth/login', { email, password });
+      const response = await api.post('/admin/auth/login', { email, password });
       return {
         success: response.data.success,
         data: response.data.data,
@@ -65,7 +63,7 @@ class AdminApiService {
 
   async verifyToken(): Promise<ApiResponse<User>> {
     try {
-      const response = await api.get('/api/admin/auth/verify');
+      const response = await api.get('/admin/auth/verify');
       return {
         success: response.data.success,
         data: response.data.data,
@@ -82,7 +80,7 @@ class AdminApiService {
   // ===== DASHBOARD =====
   async getDashboardStats(): Promise<ApiResponse<RestaurantStats>> {
     try {
-      const response = await api.get('/api/admin/dashboard');
+      const response = await api.get('/admin/dashboard');
       return {
         success: response.data.success,
         data: response.data.data,
@@ -98,24 +96,7 @@ class AdminApiService {
 
   async getTopRestaurants(): Promise<ApiResponse<TopRestaurant[]>> {
     try {
-      const response = await api.get('/api/admin/dashboard/top-restaurants');
-      return {
-        success: response.data.success,
-        data: response.data.data,
-        error: response.data.error
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.message || 'Erreur lors du chargement des top restaurants',
-      };
-    }
-  }
-
-  // ===== RESTAURANTS =====
-  async getAllRestaurants(): Promise<ApiResponse<Restaurant[]>> {
-    try {
-      const response = await api.get('/api/admin/restaurants');
+      const response = await api.get('/admin/dashboard/top-restaurants');
       return {
         success: response.data.success,
         data: response.data.data,
@@ -129,9 +110,26 @@ class AdminApiService {
     }
   }
 
-  async getRestaurant(id: number): Promise<ApiResponse<Restaurant>> {
+  // ===== RESTAURANTS =====
+  async getAllRestaurants(): Promise<ApiResponse<Restaurant[]>> {
     try {
-      const response = await api.get(`/api/admin/restaurants/${id}`);
+      const response = await api.get('/admin/restaurants');
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors du chargement des restaurants',
+      };
+    }
+  }
+
+  async getRestaurantById(id: number): Promise<ApiResponse<Restaurant>> {
+    try {
+      const response = await api.get(`/admin/restaurants/${id}`);
       return {
         success: response.data.success,
         data: response.data.data,
@@ -145,9 +143,9 @@ class AdminApiService {
     }
   }
 
-  async createRestaurant(data: CreateRestaurantRequest): Promise<ApiResponse<Restaurant>> {
+  async createRestaurant(restaurantData: CreateRestaurantRequest): Promise<ApiResponse<Restaurant>> {
     try {
-      const response = await api.post('/api/admin/restaurants', data);
+      const response = await api.post('/admin/restaurants', restaurantData);
       return {
         success: response.data.success,
         data: response.data.data,
@@ -161,9 +159,9 @@ class AdminApiService {
     }
   }
 
-  async updateRestaurant(id: number, data: UpdateRestaurantRequest): Promise<ApiResponse<Restaurant>> {
+  async updateRestaurant(id: number, restaurantData: UpdateRestaurantRequest): Promise<ApiResponse<Restaurant>> {
     try {
-      const response = await api.put(`/api/admin/restaurants/${id}`, data);
+      const response = await api.put(`/admin/restaurants/${id}`, restaurantData);
       return {
         success: response.data.success,
         data: response.data.data,
@@ -177,9 +175,9 @@ class AdminApiService {
     }
   }
 
-  async toggleRestaurantStatus(id: number, statut: 'ACTIF' | 'INACTIF' | 'SUSPENDU'): Promise<ApiResponse<Restaurant>> {
+  async toggleRestaurantStatus(id: number): Promise<ApiResponse<Restaurant>> {
     try {
-      const response = await api.patch(`/api/admin/restaurants/${id}/status`, { statut });
+      const response = await api.patch(`/admin/restaurants/${id}/toggle-status`, {});
       return {
         success: response.data.success,
         data: response.data.data,
@@ -195,7 +193,7 @@ class AdminApiService {
 
   async deleteRestaurant(id: number): Promise<ApiResponse<void>> {
     try {
-      const response = await api.delete(`/api/admin/restaurants/${id}`);
+      const response = await api.delete(`/admin/restaurants/${id}`);
       return {
         success: response.data.success,
         error: response.data.error
@@ -208,10 +206,26 @@ class AdminApiService {
     }
   }
 
+  async checkSlugAvailability(slug: string): Promise<ApiResponse<{ available: boolean }>> {
+    try {
+      const response = await api.get(`/admin/restaurants/check-slug/${slug}`);
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la vérification du slug',
+      };
+    }
+  }
+
   // ===== UTILISATEURS =====
   async getAllUsers(): Promise<ApiResponse<User[]>> {
     try {
-      const response = await api.get('/api/admin/users');
+      const response = await api.get('/admin/users');
       return {
         success: response.data.success,
         data: response.data.data,
@@ -227,7 +241,7 @@ class AdminApiService {
 
   async getUsersByRestaurant(restaurantId: number): Promise<ApiResponse<User[]>> {
     try {
-      const response = await api.get(`/api/admin/restaurants/${restaurantId}/users`);
+      const response = await api.get(`/admin/restaurants/${restaurantId}/users`);
       return {
         success: response.data.success,
         data: response.data.data,
@@ -241,9 +255,9 @@ class AdminApiService {
     }
   }
 
-  async createUser(data: CreateUserRequest): Promise<ApiResponse<User>> {
+  async createUser(userData: CreateUserRequest): Promise<ApiResponse<User>> {
     try {
-      const response = await api.post('/api/admin/users', data);
+      const response = await api.post('/admin/users', userData);
       return {
         success: response.data.success,
         data: response.data.data,
@@ -257,9 +271,9 @@ class AdminApiService {
     }
   }
 
-  async updateUser(id: number, data: UpdateUserRequest): Promise<ApiResponse<User>> {
+  async updateUser(id: number, userData: UpdateUserRequest): Promise<ApiResponse<User>> {
     try {
-      const response = await api.put(`/api/admin/users/${id}`, data);
+      const response = await api.put(`/admin/users/${id}`, userData);
       return {
         success: response.data.success,
         data: response.data.data,
@@ -275,7 +289,7 @@ class AdminApiService {
 
   async deleteUser(id: number): Promise<ApiResponse<void>> {
     try {
-      const response = await api.delete(`/api/admin/users/${id}`);
+      const response = await api.delete(`/admin/users/${id}`);
       return {
         success: response.data.success,
         error: response.data.error
@@ -288,10 +302,10 @@ class AdminApiService {
     }
   }
 
-  // ===== ANALYTICS =====
-  async getRestaurantAnalytics(restaurantId: number): Promise<ApiResponse<RestaurantAnalytics>> {
+  // ===== ANALYSES =====
+  async getAnalyticsData(period: string = '30j', restaurantId: string = 'all'): Promise<ApiResponse<any>> {
     try {
-      const response = await api.get(`/api/admin/restaurants/${restaurantId}/analytics`);
+      const response = await api.get(`/admin/analytics?period=${period}&restaurant_id=${restaurantId}`);
       return {
         success: response.data.success,
         data: response.data.data,
@@ -300,15 +314,14 @@ class AdminApiService {
     } catch (error: any) {
       return {
         success: false,
-        error: error.response?.data?.message || 'Erreur lors du chargement des analytics',
+        error: error.response?.data?.message || 'Erreur lors de la récupération des analyses',
       };
     }
   }
 
-  // ===== UTILITAIRES =====
-  async checkSlugAvailability(slug: string, excludeId?: number): Promise<ApiResponse<{ available: boolean }>> {
+  async getRestaurantAnalytics(restaurantId: number): Promise<ApiResponse<RestaurantAnalytics>> {
     try {
-      const response = await api.get(`/api/admin/restaurants/check-slug/${slug}${excludeId ? `?exclude=${excludeId}` : ''}`);
+      const response = await api.get(`/admin/restaurants/${restaurantId}/analytics`);
       return {
         success: response.data.success,
         data: response.data.data,
@@ -317,11 +330,141 @@ class AdminApiService {
     } catch (error: any) {
       return {
         success: false,
-        error: error.response?.data?.message || 'Erreur lors de la vérification du slug',
+        error: error.response?.data?.message || 'Erreur lors de la récupération des analyses du restaurant',
+      };
+    }
+  }
+
+  async getGlobalAnalytics(): Promise<ApiResponse<any>> {
+    try {
+      const response = await api.get('/admin/analytics/global');
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la récupération des analyses globales',
+      };
+    }
+  }
+
+  // ===== PARAMÈTRES SYSTÈME =====
+  async getSettings(category: string = 'all'): Promise<ApiResponse<any>> {
+    try {
+      const response = await api.get(`/settings/settings?category=${category}`);
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la récupération des paramètres',
+      };
+    }
+  }
+
+  async updateSettings(settings: any): Promise<ApiResponse<any>> {
+    try {
+      const response = await api.put('/settings/settings', { settings });
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la mise à jour des paramètres',
+      };
+    }
+  }
+
+  async getSystemStats(): Promise<ApiResponse<any>> {
+    try {
+      const response = await api.get('/settings/stats');
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la récupération des statistiques',
+      };
+    }
+  }
+
+  // ===== GESTION DES CLÉS API =====
+  async getApiKeys(): Promise<ApiResponse<any>> {
+    try {
+      const response = await api.get('/settings/api-keys');
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la récupération des clés API',
+      };
+    }
+  }
+
+  async createApiKey(keyData: { key_name: string; key_type?: string; permissions?: string[] }): Promise<ApiResponse<any>> {
+    try {
+      const response = await api.post('/settings/api-keys', keyData);
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la création de la clé API',
+      };
+    }
+  }
+
+  async regenerateApiKey(keyId: number): Promise<ApiResponse<any>> {
+    try {
+      const response = await api.put(`/settings/api-keys/${keyId}/regenerate`);
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la régénération de la clé API',
+      };
+    }
+  }
+
+  // ===== SAUVEGARDE =====
+  async backupDatabase(): Promise<ApiResponse<any>> {
+    try {
+      const response = await api.post('/settings/backup');
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.error
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur lors de la sauvegarde',
       };
     }
   }
 }
 
-export const adminApiService = new AdminApiService();
-export default adminApiService;
+export default new AdminApiService();

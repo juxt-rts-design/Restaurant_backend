@@ -29,6 +29,7 @@ router.get('/restaurants/:id', auth, requireAdmin, adminController.getRestaurant
 router.post('/restaurants', auth, requireAdmin, adminController.createRestaurant);
 router.put('/restaurants/:id', auth, requireAdmin, adminController.updateRestaurant);
 router.patch('/restaurants/:id/status', auth, requireAdmin, adminController.updateRestaurantStatus);
+router.patch('/restaurants/:id/toggle-status', auth, requireAdmin, adminController.toggleRestaurantStatus);
 router.delete('/restaurants/:id', auth, requireAdmin, adminController.deleteRestaurant);
 
 // Vérification de disponibilité du slug
@@ -40,6 +41,9 @@ router.get('/restaurants/:id/users', auth, requireAdmin, adminController.getUser
 router.post('/users', auth, requireAdmin, adminController.createUser);
 router.put('/users/:id', auth, requireAdmin, adminController.updateUser);
 router.delete('/users/:id', auth, requireAdmin, adminController.deleteUser);
+
+// ===== ANALYSES =====
+router.get('/analytics', auth, requireAdmin, adminController.getAnalyticsData);
 
 // ===== ANALYTICS =====
 router.get('/restaurants/:id/analytics', auth, requireAdmin, adminController.getRestaurantAnalytics);

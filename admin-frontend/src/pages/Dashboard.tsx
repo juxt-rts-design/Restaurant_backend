@@ -8,7 +8,7 @@ import {
   TrendingDown,
   Activity
 } from 'lucide-react';
-import { adminApiService } from '../services/adminApi';
+import adminApiService from '../services/adminApi';
 import { RestaurantStats, TopRestaurant } from '../types/admin';
 
 const Dashboard: React.FC = () => {

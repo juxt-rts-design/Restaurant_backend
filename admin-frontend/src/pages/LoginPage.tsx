@@ -4,7 +4,11 @@ import { useAdmin } from '../contexts/AdminContext';
 import { Building2, Lock, Mail } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
+  console.log('🔍 LoginPage: Composant rendu');
+  
   const { state, login } = useAdmin();
+  console.log('🔍 LoginPage: State admin:', state);
+  
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -12,6 +16,7 @@ const LoginPage: React.FC = () => {
 
   // Si déjà connecté, rediriger vers le dashboard
   if (state.user) {
+    console.log('🔍 LoginPage: Utilisateur déjà connecté, redirection vers dashboard');
     return <Navigate to="/dashboard" replace />;
   }
 

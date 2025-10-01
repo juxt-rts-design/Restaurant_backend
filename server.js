@@ -14,6 +14,7 @@ const {
 // Import des routes
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
 const clientRoutes = require('./routes/clientRoutes');
 const caisseRoutes = require('./routes/caisseRoutes');
 const managerRoutes = require('./routes/managerRoutes');
@@ -35,7 +36,7 @@ app.use(sanitizeInput);
 app.use(cors({
   origin: config.corsOrigins,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
@@ -75,6 +76,7 @@ app.get('/health', (req, res) => {
 // Routes API
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/settings', settingsRoutes);
 app.use('/api/client', clientRoutes);
 app.use('/api/caisse', caisseRoutes);
 app.use('/api/manager', managerRoutes);
